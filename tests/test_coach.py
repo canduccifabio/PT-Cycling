@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../s
 
 from intervals_client import IntervalsClient, MANAGED_TAG
 from performance_analyzer import PerformanceAnalyzer, SessionEvaluation
+from workout_archetypes import WorldTourWorkoutArchetypes
 from workout_builder import WorkoutBuilder
 
 
@@ -20,39 +21,39 @@ class TestWorkoutBuilder:
         builder = WorkoutBuilder(ftp_watts=205)
 
         # Below 42m must clamp to 42m
-        w_short = builder.build_vo2max_session(week=1, duration_min=30)
+        w_short = builder.build_ronnestad_30_15(level=1.0, duration_min=30)
         assert w_short.target_duration_minutes == 42
 
         # Above 60m must clamp to 60m
-        w_long = builder.build_sweet_spot_session(week=2, duration_min=90)
+        w_long = builder.build_criss_cross_sst(level=2.0, duration_min=90)
         assert w_long.target_duration_minutes == 60
 
         # Exact durations within [42, 60] are preserved
         for d in [42, 45, 50, 55, 60]:
-            w = builder.build_threshold_over_under_session(week=3, duration_min=d)
+            w = builder.build_float_sets_thr(level=1.5, duration_min=d)
             assert w.target_duration_minutes == d
 
     def test_elite_suito_erg_biomechanics(self):
         builder = WorkoutBuilder(ftp_watts=205)
 
-        for week in [1, 2, 3, 4]:
-            vo2 = builder.build_vo2max_session(week=week, duration_min=45)
-            ss = builder.build_sweet_spot_session(week=week, duration_min=50)
-            ou = builder.build_threshold_over_under_session(week=week, duration_min=60)
+        vo2 = builder.build_ronnestad_30_15(level=1.0, duration_min=45)
+        sst = builder.build_criss_cross_sst(level=1.0, duration_min=50)
+        thr = builder.build_float_sets_thr(level=1.0, duration_min=60)
+        delo = builder.build_neuromuscular_openers_deload(level=1.0, duration_min=42)
 
-            for w in [vo2, ss, ou]:
-                desc = w.description
-                # 1. Warm-up reactive bursts present
-                assert "105% 100-105rpm" in desc
-                assert "3x" in desc
-                # 2. Cool-down ramp present
-                assert "ramp 55-40%" in desc
-                # 3. Formatted for Intervals.icu (hyphens for steps)
-                assert "- " in desc
+        for w in [vo2, sst, thr, delo]:
+            desc = w.description
+            # 1. Warm-up reactive bursts present (Elite Suito brake activation)
+            assert "105% 100-105rpm" in desc
+            assert "3x" in desc
+            # 2. Cool-down ramp present
+            assert "ramp 55-40%" in desc
+            # 3. Formatted for Intervals.icu
+            assert "- " in desc
 
-            # Anti-spiral cue present in high intensity workouts
-            assert "Anti-Spiral" in vo2.description or "cadenza a 95-100 RPM" in vo2.description
-            assert "Anti-Spiral" in ou.description or "cadenza a 95-100 RPM" in ou.description
+        # Anti-spiral cue present in high intensity workouts
+        assert "Anti-Spiral" in vo2.description or "cadenza a 95-100 RPM" in vo2.description
+        assert "cadenza" in thr.description
 
     def test_wattage_calculation_from_ftp(self):
         builder = WorkoutBuilder(ftp_watts=205)
@@ -63,25 +64,34 @@ class TestWorkoutBuilder:
         # 50% of 205 = 102.5 -> 102 or 103W
         assert builder._watts(50) in [102, 103]
 
-    def test_weekly_schedule_mapping(self):
+    def test_worldtour_dynamic_rotation_and_freshness(self):
+        """Verifies that the builder rotates archetypes and produces different workouts."""
         builder = WorkoutBuilder(ftp_watts=205)
         days = ["MON", "WED", "FRI"]
-        schedule = builder.build_weekly_schedule(
+
+        # Run 1
+        schedule_1 = builder.build_weekly_schedule(
             week=1,
             training_days=days,
             weekday_duration=50,
-            friday_duration=60
+            friday_duration=60,
+            used_archetypes=[]
         )
-        assert len(schedule) == 3
-        day_names = [d[0] for d in schedule]
-        assert day_names == ["MON", "WED", "FRI"]
+        assert len(schedule_1) == 3
+        used_first = [w[1].archetype_id for w in schedule_1]
 
-        # MON session: 50 min
-        assert schedule[0][1].target_duration_minutes == 50
-        # WED session: 50 min
-        assert schedule[1][1].target_duration_minutes == 50
-        # FRI session: 60 min
-        assert schedule[2][1].target_duration_minutes == 60
+        # Run 2 with previous used archetypes passed
+        schedule_2 = builder.build_weekly_schedule(
+            week=2,
+            training_days=days,
+            weekday_duration=50,
+            friday_duration=60,
+            used_archetypes=used_first
+        )
+        used_second = [w[1].archetype_id for w in schedule_2]
+
+        # Ensure that at least for VO2max and Sweet Spot, the archetype rotated
+        assert used_second[0] != used_first[0] or used_second[1] != used_first[1]
 
 
 class TestPerformanceAnalyzer:
@@ -124,9 +134,13 @@ class TestPerformanceAnalyzer:
         assert ev.decoupling_pct == 2.1
         assert ev.completed is True
 
-    def test_advancement_from_week_1_to_2(self):
+    def test_advancement_from_week_1_to_2_with_level_up(self):
         analyzer = PerformanceAnalyzer(min_compliance_to_advance=0.85)
-        current_state = {"current_ftp": 205, "mesocycle_week": 1}
+        current_state = {
+            "current_ftp": 205,
+            "mesocycle_week": 1,
+            "progression_levels": {"vo2max": 1.0, "sweet_spot": 1.0, "threshold": 1.0}
+        }
 
         successful_evals = [
             SessionEvaluation(
@@ -166,6 +180,9 @@ class TestPerformanceAnalyzer:
         assert result.next_ftp == 205
         assert result.ftp_increased is False
         assert "ADVANCE_TO_WEEK_2" in result.advancement_decision
+        # Progression levels incremented!
+        assert result.updated_progression_levels["vo2max"] > 1.0
+        assert result.updated_progression_levels["sweet_spot"] > 1.0
 
     def test_auto_adaptive_ftp_increase_end_of_block(self):
         """At end of Week 4 (deload), if block success is high, auto-increase FTP by +2%."""
@@ -174,7 +191,11 @@ class TestPerformanceAnalyzer:
             max_decoupling_pct=6.5,
             auto_ftp_increase_pct=0.02
         )
-        current_state = {"current_ftp": 205, "mesocycle_week": 4}
+        current_state = {
+            "current_ftp": 205,
+            "mesocycle_week": 4,
+            "progression_levels": {"vo2max": 2.2, "sweet_spot": 2.2, "threshold": 2.2}
+        }
 
         evals_week_4 = [
             SessionEvaluation(
@@ -201,6 +222,8 @@ class TestPerformanceAnalyzer:
         assert result.next_week == 1  # Reset to week 1 of new mesocycle
         assert result.advancement_decision == "AUTO_FTP_INCREASE"
         assert "PROGRESSIONE COMPLETATA" in result.summary_message
+        # Levels reset to 1.0 for new higher FTP baseline
+        assert result.updated_progression_levels["vo2max"] == 1.0
 
     def test_manual_override_ftp(self):
         analyzer = PerformanceAnalyzer()

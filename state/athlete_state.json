@@ -2,6 +2,12 @@
   "current_ftp": 205,
   "mesocycle_week": 1,
   "mesocycle_block": 1,
+  "progression_levels": {
+    "vo2max": 1.0,
+    "sweet_spot": 1.0,
+    "threshold": 1.0
+  },
+  "used_archetypes": [],
   "preferred_days": [
     "MON",
     "WED",

@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PT Cycling">
   <title>PT Cycling | WorldTour Indoor Coach</title>
+  
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -31,7 +35,6 @@
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    /* Mobile-first touch-friendly styles */
     .glass-card {
       background: rgba(30, 41, 59, 0.7);
       backdrop-filter: blur(12px);
@@ -46,9 +49,12 @@
       cursor: pointer;
       box-shadow: 0 0 10px rgba(249, 115, 22, 0.5);
     }
+    .pulse-glow {
+      box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+    }
   </style>
 </head>
-<body class="bg-dark-950 text-slate-100 min-h-screen font-sans pb-24 antialiased selection:bg-brand-500 selection:text-white">
+<body class="bg-dark-950 text-slate-100 min-h-screen font-sans pb-28 antialiased selection:bg-brand-500 selection:text-white">
 
   <!-- Mobile Top Bar -->
   <header class="sticky top-0 z-50 glass-card border-b border-slate-800 px-4 py-3">
@@ -61,13 +67,13 @@
           <h1 class="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
             PT CYCLING <span class="text-[10px] bg-brand-500/20 text-brand-500 border border-brand-500/30 px-1.5 py-0.5 rounded font-mono">WORLDTOUR</span>
           </h1>
-          <p class="text-[10px] text-slate-400">Elite Suito ERG • Zero-PC Cloud</p>
+          <p class="text-[10px] text-slate-400">Elite Suito ERG • 1-Tap Cloud Sync</p>
         </div>
       </div>
-      <div class="flex items-center space-x-1.5">
-        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse mr-1"></span> Cloud Active
-        </span>
+      <div class="flex items-center space-x-2">
+        <button id="btnOpenSettings" class="w-8 h-8 rounded-lg bg-dark-850 border border-slate-700 flex items-center justify-center text-slate-300 hover:text-white">
+          <i class="fa-solid fa-gear text-xs"></i>
+        </button>
       </div>
     </div>
   </header>
@@ -90,7 +96,7 @@
           <span class="text-xs text-slate-400 font-semibold">Watt</span>
         </div>
         <div class="mt-1 text-[11px] text-emerald-400 flex items-center gap-1">
-          <i class="fa-solid fa-arrow-trend-up"></i> Auto-Adaptive (+2%/ciclo)
+          <i class="fa-solid fa-arrow-trend-up"></i> Auto-Adaptive (+2%/blocco)
         </div>
       </div>
 
@@ -113,31 +119,61 @@
       </div>
     </div>
 
-    <!-- Mesocycle 3:1 Interactive Visualizer -->
+    <!-- WorldTour Energy System Progression Levels Card -->
+    <div class="glass-card rounded-2xl p-4 space-y-2">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+          <i class="fa-solid fa-chart-simple text-amber-400"></i> Livelli di Preparazione WorldTour
+        </h2>
+        <span class="text-[10px] text-emerald-400 font-mono font-bold">Auto-Incrementale</span>
+      </div>
+      <p class="text-[11px] text-slate-400">
+        Gli allenamenti ruotano sempre su archetipi nuovi (Rønnestad, Criss-Cross, Float Sets) scalando in difficoltà:
+      </p>
+
+      <div class="grid grid-cols-3 gap-2 pt-1">
+        <div class="bg-dark-850/80 border border-slate-800 p-2.5 rounded-xl text-center">
+          <span class="text-[10px] text-red-400 font-bold block">VO2MAX</span>
+          <span id="lvlVo2" class="text-base font-extrabold text-white">Lvl 1.0</span>
+          <span class="text-[9px] text-slate-500 block">Kinetics & Bursts</span>
+        </div>
+        <div class="bg-dark-850/80 border border-slate-800 p-2.5 rounded-xl text-center">
+          <span class="text-[10px] text-amber-400 font-bold block">SWEET SPOT</span>
+          <span id="lvlSst" class="text-base font-extrabold text-white">Lvl 1.0</span>
+          <span class="text-[9px] text-slate-500 block">Torque & Density</span>
+        </div>
+        <div class="bg-dark-850/80 border border-slate-800 p-2.5 rounded-xl text-center">
+          <span class="text-[10px] text-blue-400 font-bold block">SOGLIA</span>
+          <span id="lvlThr" class="text-base font-extrabold text-white">Lvl 1.0</span>
+          <span class="text-[9px] text-slate-500 block">Lactate Shuttle</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mesocycle 3:1 Track -->
     <div class="glass-card rounded-2xl p-4">
       <div class="flex justify-between items-center mb-2">
         <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-          <i class="fa-solid fa-chart-line text-brand-500"></i> Ciclo 3:1 Sovraccarico Progressivo
+          <i class="fa-solid fa-arrows-spin text-brand-500"></i> Ciclo 3:1 Sovraccarico Progressivo
         </h2>
         <span id="weekLabelBadge" class="text-[11px] px-2 py-0.5 rounded bg-brand-500/20 text-brand-400 font-medium">Settimana 1: Base</span>
       </div>
       
-      <!-- Progress Track -->
       <div class="grid grid-cols-4 gap-1.5 pt-1">
         <div class="flex flex-col items-center">
           <div id="stepW1" class="w-full h-2 rounded-full bg-brand-500 shadow-sm shadow-brand-500/50"></div>
           <span class="text-[10px] text-brand-400 mt-1 font-bold">W1 Base</span>
-          <span class="text-[9px] text-slate-500">TiZ Standard</span>
+          <span class="text-[9px] text-slate-500">Nuovi Archetipi</span>
         </div>
         <div class="flex flex-col items-center">
           <div id="stepW2" class="w-full h-2 rounded-full bg-slate-700"></div>
           <span class="text-[10px] text-slate-400 mt-1">W2 Densità</span>
-          <span class="text-[9px] text-slate-500">+15% TiZ</span>
+          <span class="text-[9px] text-slate-500">+15% TiZ / Lvl Up</span>
         </div>
         <div class="flex flex-col items-center">
           <div id="stepW3" class="w-full h-2 rounded-full bg-slate-700"></div>
           <span class="text-[10px] text-slate-400 mt-1">W3 Picco</span>
-          <span class="text-[9px] text-slate-500">Max Carico</span>
+          <span class="text-[9px] text-slate-500">Max Sforzo</span>
         </div>
         <div class="flex flex-col items-center">
           <div id="stepW4" class="w-full h-2 rounded-full bg-slate-700"></div>
@@ -147,19 +183,19 @@
       </div>
     </div>
 
-    <!-- Mobile Control Panel Form -->
+    <!-- Mobile 1-Tap Control Center Panel -->
     <div class="glass-card rounded-2xl p-4 space-y-4">
       <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center justify-between">
         <span class="flex items-center gap-1.5">
-          <i class="fa-solid fa-sliders text-brand-500"></i> Telecomando Allenamenti
+          <i class="fa-solid fa-sliders text-brand-500"></i> Parametri Settimana
         </span>
-        <span class="text-[10px] text-slate-400 font-normal">Modifiche da Smartphone</span>
+        <span class="text-[10px] text-slate-400 font-normal">Senza aprire l'app GitHub</span>
       </h2>
 
       <!-- Day Selector -->
       <div>
         <label class="block text-xs font-medium text-slate-300 mb-2">
-          Giorni Settimanali (Seleziona i tuoi giorni indoor)
+          Giorni Indoor (Tocca per attivare/disattivare)
         </label>
         <div class="grid grid-cols-7 gap-1" id="daysContainer">
           <button type="button" data-day="MON" class="day-btn py-2 text-xs font-bold rounded-xl transition-all bg-brand-500 text-white shadow-md shadow-brand-500/30">LUN</button>
@@ -196,7 +232,7 @@
         </label>
         <div class="flex gap-2">
           <div class="relative flex-1">
-            <input type="number" id="overrideFtpInput" placeholder="Es. 205 o 210" min="100" max="500"
+            <input type="number" id="overrideFtpInput" placeholder="Auto-progressione se vuoto" min="100" max="500"
               class="w-full bg-dark-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
             <span class="absolute right-3 top-2 text-xs text-slate-500">Watt</span>
           </div>
@@ -206,111 +242,129 @@
         </div>
       </div>
 
-      <!-- Quick Action Buttons -->
-      <div class="pt-2 space-y-2">
-        <button type="button" id="btnDispatchGitHub" 
-          class="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-gradient-to-r from-brand-600 to-amber-500 shadow-lg shadow-brand-500/30 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-          <i class="fa-brands fa-github text-sm"></i>
-          <span>Programma Settimana su GitHub</span>
+      <!-- THE 1-TAP BIG ACTION BUTTON -->
+      <div class="pt-2">
+        <button type="button" id="btnOneTapDispatch" 
+          class="w-full py-4 px-4 rounded-2xl font-black text-sm uppercase tracking-wider text-white bg-gradient-to-r from-brand-600 via-orange-500 to-amber-500 shadow-xl shadow-brand-500/30 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 pulse-glow">
+          <i class="fa-solid fa-bolt-lightning text-amber-200 text-base"></i>
+          <span id="btnOneTapText">🚀 1-TAP: PROGRAMMA E SINCRONIZZA ORA</span>
         </button>
-
-        <button type="button" id="btnCopyConfig"
-          class="w-full py-2.5 px-4 rounded-xl font-semibold text-xs text-slate-300 bg-dark-800 border border-slate-700 hover:bg-slate-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-          <i class="fa-solid fa-copy text-xs"></i>
-          <span>Copia Parametri per App GitHub Mobile</span>
-        </button>
+        <p class="text-center text-[10px] text-slate-400 mt-2">
+          Avvia l'analisi cloud e sincronizza subito MyWhoosh e Garmin Edge senza aprire GitHub.
+        </p>
       </div>
+
     </div>
 
-    <!-- Workout Preview Card -->
+    <!-- Workout Dynamic Preview Card -->
     <div class="glass-card rounded-2xl p-4 space-y-3">
       <div class="flex justify-between items-center">
         <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-          <i class="fa-solid fa-dumbbell text-brand-500"></i> Anteprima Sessioni Rullo ERG
+          <i class="fa-solid fa-dumbbell text-brand-500"></i> Esempi di Archetipi WorldTour
         </h2>
-        <span class="text-[10px] text-slate-400">Ottimizzato Suito</span>
+        <span class="text-[10px] text-slate-400">Rotazione Automatica</span>
       </div>
 
-      <div class="space-y-2.5" id="workoutList">
-        <!-- Session 1 -->
+      <div class="space-y-2.5">
+        <!-- VO2 Example -->
         <div class="bg-dark-850/80 border border-slate-800 rounded-xl p-3">
           <div class="flex items-start justify-between">
             <div>
-              <span class="text-[10px] font-bold text-red-400 uppercase tracking-wider">Sessione 1 • VO2max Microbursts</span>
-              <h3 class="text-xs font-bold text-white mt-0.5">Micro-intervalli 30/30 o 35/25 ad alta cadenza</h3>
+              <span class="text-[10px] font-bold text-red-400 uppercase tracking-wider">VO2max • Rønnestad / Hard-Start / Tabata</span>
+              <h3 class="text-xs font-bold text-white mt-0.5">Burst 118-120% FTP (<span class="vo2-target font-bold text-amber-400">242-246W</span>)</h3>
             </div>
             <span class="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300">45-50 min</span>
           </div>
-          <div class="mt-2 text-[11px] text-slate-400 space-y-1">
-            <p>🎯 <strong class="text-slate-200">Target VO2:</strong> 115-120% FTP (<span class="vo2-target font-bold text-amber-400">236-246W</span>) a 100-105 RPM.</p>
-            <p>🛡️ <strong class="text-slate-200">Anti-Spiral Suito:</strong> Allarme testuale "Aumenta la cadenza a 95-100 RPM prima dello step!".</p>
-          </div>
+          <p class="text-[11px] text-slate-400 mt-1">
+            🛡️ Prevenzione Spiral Suito: avviso cadenza 95-100 RPM a schermo prima di ogni serie.
+          </p>
         </div>
 
-        <!-- Session 2 -->
+        <!-- Sweet Spot Example -->
         <div class="bg-dark-850/80 border border-slate-800 rounded-xl p-3">
           <div class="flex items-start justify-between">
             <div>
-              <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Sessione 2 • Sweet Spot Engine</span>
-              <h3 class="text-xs font-bold text-white mt-0.5">Ripetute 3x 8-10m a 88-93% FTP</h3>
+              <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Sweet Spot • Criss-Cross / Forza Resistente</span>
+              <h3 class="text-xs font-bold text-white mt-0.5">88-93% FTP (<span class="ss-target font-bold text-amber-400">185W</span>)</h3>
             </div>
             <span class="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300">50 min</span>
           </div>
-          <div class="mt-2 text-[11px] text-slate-400 space-y-1">
-            <p>🎯 <strong class="text-slate-200">Target Potenza:</strong> 90% FTP (<span class="ss-target font-bold text-amber-400">185W</span>) a 90-92 RPM.</p>
-            <p>⚙️ <strong class="text-slate-200">Freno Suito:</strong> Erogazione fluida e lineare della coppia magnetica.</p>
-          </div>
+          <p class="text-[11px] text-slate-400 mt-1">
+            ⚙️ Variazioni tra 55 RPM (forza) e 100 RPM (agilità) o oscillazioni di acido lattico.
+          </p>
         </div>
 
-        <!-- Session 3 -->
+        <!-- Threshold Example -->
         <div class="bg-dark-850/80 border border-slate-800 rounded-xl p-3">
           <div class="flex items-start justify-between">
             <div>
-              <span class="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Sessione 3 • Soglia & Over-Under</span>
-              <h3 class="text-xs font-bold text-white mt-0.5">Lactate Clearance (3x 8-10m Over-Under)</h3>
+              <span class="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Soglia • Float Sets / Spanish Steps</span>
+              <h3 class="text-xs font-bold text-white mt-0.5">Under <span class="under-target font-bold text-slate-200">193W</span> / Over <span class="over-target font-bold text-amber-400">221W</span></h3>
             </div>
             <span class="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300">60 min</span>
           </div>
-          <div class="mt-2 text-[11px] text-slate-400 space-y-1">
-            <p>🎯 <strong class="text-slate-200">Target Oscillante:</strong> Under 92-95% (<span class="under-target font-bold text-slate-200">189-195W</span>) / Over 105-110% (<span class="over-target font-bold text-amber-400">215-226W</span>).</p>
-            <p>🔄 <strong class="text-slate-200">Sync:</strong> Immediata su calendario MyWhoosh e Garmin Edge 850.</p>
-          </div>
+          <p class="text-[11px] text-slate-400 mt-1">
+            🔄 Float sets: nessun recupero passivo, combustione lattato ad andatura limite.
+          </p>
         </div>
       </div>
     </div>
 
-    <!-- Sync Topology Info -->
-    <div class="glass-card rounded-2xl p-4">
-      <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-        <i class="fa-solid fa-arrows-split-up-and-left text-brand-500"></i> Architettura di Sincronizzazione 100% Cloud
+    <!-- Apple Shortcut & Telegram Info Card -->
+    <div class="glass-card rounded-2xl p-4 space-y-2">
+      <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+        <i class="fa-solid fa-mobile-screen-button text-brand-500"></i> Metodi Alternativi Zero-Click
       </h3>
-      <div class="text-[11px] text-slate-400 space-y-2">
-        <div class="flex items-center gap-2">
-          <i class="fa-solid fa-cloud text-brand-500"></i>
-          <span><strong>GitHub Actions:</strong> Generatore serverless (cron dom 20:00 o trigger mobile).</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <i class="fa-solid fa-network-wired text-blue-400"></i>
-          <span><strong>Intervals.icu API:</strong> Hub centrale con parsing sintassi FIT/ZWO nativo.</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <i class="fa-solid fa-tablet-screen-button text-emerald-400"></i>
-          <span><strong>MyWhoosh (Tablet Android):</strong> Riceve gli allenamenti ERG via Intervals.icu.</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <i class="fa-solid fa-microchip text-slate-300"></i>
-          <span><strong>Garmin Edge 850 (Fallback):</strong> Sincronizzazione automatica tramite Garmin Connect.</span>
-        </div>
+      <div class="text-[11px] text-slate-400 space-y-1.5">
+        <p>📱 <strong>Salva su Schermata Home:</strong> Tocca <em>Condividi ➔ Aggiungi a schermata Home</em> su Safari (iOS) o Chrome (Android) per aprirla come una vera app a pieno schermo.</p>
+        <p>💬 <strong>Notifiche Telegram:</strong> Inserisci nei secret di GitHub il tuo `TELEGRAM_BOT_TOKEN` e riceverai il report completo ogni domenica sera direttamente in chat.</p>
       </div>
-    </div>
-
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-6 left-4 right-4 max-w-md mx-auto hidden bg-emerald-600 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center justify-between transition-all">
-      <span id="toastMsg">Parametri copiati negli appunti!</span>
-      <i class="fa-solid fa-circle-check text-sm ml-2"></i>
     </div>
 
   </main>
+
+  <!-- Settings Modal (GitHub Token configuration for 1-Tap) -->
+  <div id="settingsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="glass-card max-w-sm w-full rounded-2xl p-5 space-y-4 border border-slate-700">
+      <div class="flex justify-between items-center">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-key text-brand-500"></i> Configurazione 1-Tap
+        </h3>
+        <button id="btnCloseSettings" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+      <p class="text-[11px] text-slate-300">
+        Per attivare il pulsante 1-Tap senza aprire l'app GitHub, inserisci qui una volta sola il tuo repository e un Personal Access Token. 
+        <strong class="text-amber-400">Viene salvato unicamente nel tuo telefono (localStorage)</strong>.
+      </p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-[10px] font-bold text-slate-300 uppercase mb-1">Repository GitHub (username/repo)</label>
+          <input type="text" id="ghRepoInput" placeholder="es. fabiocanducci/PT-Cycling"
+            class="w-full bg-dark-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold text-slate-300 uppercase mb-1">GitHub Token (Fine-grained o Classic)</label>
+          <input type="password" id="ghTokenInput" placeholder="ghp_xxxxxxxxxxxx"
+            class="w-full bg-dark-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+          <span class="text-[9px] text-slate-400 mt-1 block">Permesso necessario: solo <code>Actions (Read & Write)</code>.</span>
+        </div>
+      </div>
+
+      <button id="btnSaveSettings" class="w-full py-2.5 bg-brand-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-brand-500/30">
+        Salva nel Telefono
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-6 left-4 right-4 max-w-md mx-auto hidden bg-emerald-600 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center justify-between transition-all">
+    <span id="toastMsg">Operazione completata!</span>
+    <i class="fa-solid fa-circle-check text-sm ml-2"></i>
+  </div>
 
   <script>
     // State
@@ -319,7 +373,7 @@
     let selectedDays = ['MON', 'WED', 'FRI'];
     let selectedDuration = 50;
 
-    // Load state from local athlete_state.json if hosted, or fallback
+    // Load state
     async function loadAthleteState() {
       try {
         const res = await fetch('../state/athlete_state.json');
@@ -329,6 +383,11 @@
           if (data.mesocycle_week) mesocycleWeek = data.mesocycle_week;
           if (data.preferred_days && data.preferred_days.length) selectedDays = data.preferred_days;
           if (data.weekday_duration) selectedDuration = data.weekday_duration;
+          if (data.progression_levels) {
+            document.getElementById('lvlVo2').innerText = `Lvl ${data.progression_levels.vo2max || 1.0}`;
+            document.getElementById('lvlSst').innerText = `Lvl ${data.progression_levels.sweet_spot || 1.0}`;
+            document.getElementById('lvlThr').innerText = `Lvl ${data.progression_levels.threshold || 1.0}`;
+          }
         }
       } catch (err) {
         console.log('Using default state params:', err);
@@ -348,7 +407,6 @@
       };
       document.getElementById('weekLabelBadge').innerText = weekLabels[mesocycleWeek] || `W${mesocycleWeek}`;
 
-      // Update week steps
       for (let i = 1; i <= 4; i++) {
         const step = document.getElementById(`stepW${i}`);
         if (step) {
@@ -362,7 +420,6 @@
         }
       }
 
-      // Update day buttons
       document.querySelectorAll('.day-btn').forEach(btn => {
         const day = btn.getAttribute('data-day');
         if (selectedDays.includes(day)) {
@@ -372,25 +429,23 @@
         }
       });
 
-      // Update duration
       document.getElementById('durationSlider').value = selectedDuration;
       document.getElementById('durationValue').innerText = selectedDuration;
 
-      // Update calculated Watts
-      const vo2Min = Math.round(currentFtp * 1.15);
+      const vo2Min = Math.round(currentFtp * 1.18);
       const vo2Max = Math.round(currentFtp * 1.20);
       document.querySelectorAll('.vo2-target').forEach(el => el.innerText = `${vo2Min}-${vo2Max}W`);
 
       const ss = Math.round(currentFtp * 0.90);
       document.querySelectorAll('.ss-target').forEach(el => el.innerText = `${ss}W`);
 
-      const under = Math.round(currentFtp * 0.93);
+      const under = Math.round(currentFtp * 0.94);
       const over = Math.round(currentFtp * 1.08);
       document.querySelectorAll('.under-target').forEach(el => el.innerText = `${under}W`);
       document.querySelectorAll('.over-target').forEach(el => el.innerText = `${over}W`);
     }
 
-    // Event Listeners
+    // Days toggle
     document.querySelectorAll('.day-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const day = btn.getAttribute('data-day');
@@ -405,6 +460,7 @@
       });
     });
 
+    // Duration slider
     const slider = document.getElementById('durationSlider');
     slider.addEventListener('input', (e) => {
       selectedDuration = parseInt(e.target.value);
@@ -416,29 +472,80 @@
       document.getElementById('overrideFtpInput').value = nextVal;
     });
 
-    function showToast(msg) {
+    function showToast(msg, isError = false) {
       const toast = document.getElementById('toast');
       document.getElementById('toastMsg').innerText = msg;
+      toast.className = `fixed bottom-6 left-4 right-4 max-w-md mx-auto ${isError ? 'bg-red-600' : 'bg-emerald-600'} text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center justify-between transition-all`;
       toast.classList.remove('hidden');
-      setTimeout(() => toast.classList.add('hidden'), 3500);
+      setTimeout(() => toast.classList.add('hidden'), 4000);
     }
 
-    document.getElementById('btnCopyConfig').addEventListener('click', () => {
-      const ftpVal = document.getElementById('overrideFtpInput').value.trim();
-      const text = `training_days: ${selectedDays.join(',')}\nmax_duration_min: ${selectedDuration}\noverride_ftp: ${ftpVal}`;
-      navigator.clipboard.writeText(text).then(() => {
-        showToast('Parametri copiati! Incollali su GitHub Mobile.');
-      }).catch(() => {
-        showToast(`Parametri: ${selectedDays.join(',')} | ${selectedDuration} min`);
-      });
+    // Settings Modal
+    const modal = document.getElementById('settingsModal');
+    document.getElementById('btnOpenSettings').addEventListener('click', () => {
+      document.getElementById('ghRepoInput').value = localStorage.getItem('pt_gh_repo') || '';
+      document.getElementById('ghTokenInput').value = localStorage.getItem('pt_gh_token') || '';
+      modal.classList.remove('hidden');
+    });
+    document.getElementById('btnCloseSettings').addEventListener('click', () => modal.classList.add('hidden'));
+    document.getElementById('btnSaveSettings').addEventListener('click', () => {
+      const repo = document.getElementById('ghRepoInput').value.trim();
+      const token = document.getElementById('ghTokenInput').value.trim();
+      if (repo) localStorage.setItem('pt_gh_repo', repo);
+      if (token) localStorage.setItem('pt_gh_token', token);
+      modal.classList.add('hidden');
+      showToast('Impostazioni salvate sul telefono!');
     });
 
-    document.getElementById('btnDispatchGitHub').addEventListener('click', () => {
-      const currentUrl = window.location.href;
-      // Open GitHub actions page if repository URL can be deduced, or copy parameters
-      const repoUrl = "https://github.com"; 
-      window.open('https://github.com', '_blank');
-      showToast('Apri l\'app GitHub Mobile -> Actions -> Run Workflow!');
+    // 1-TAP DISPATCH DIRECT VIA GITHUB REST API
+    document.getElementById('btnOneTapDispatch').addEventListener('click', async () => {
+      const repo = localStorage.getItem('pt_gh_repo');
+      const token = localStorage.getItem('pt_gh_token');
+
+      if (!repo || !token) {
+        modal.classList.remove('hidden');
+        showToast('Configura il tuo GitHub Token una volta sola per il 1-Tap!', true);
+        return;
+      }
+
+      const btn = document.getElementById('btnOneTapDispatch');
+      const btnText = document.getElementById('btnOneTapText');
+      const originalText = btnText.innerText;
+      btnText.innerText = '⏳ GENERAZIONE IN CORSO SUL CLOUD...';
+      btn.disabled = true;
+
+      const overrideFtp = document.getElementById('overrideFtpInput').value.trim();
+
+      try {
+        const res = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/coach_automation.yml/dispatches`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28'
+          },
+          body: JSON.stringify({
+            ref: 'main',
+            inputs: {
+              training_days: selectedDays.join(','),
+              max_duration_min: String(selectedDuration),
+              override_ftp: overrideFtp
+            }
+          })
+        });
+
+        if (res.status === 204) {
+          showToast('🎉 Allenatore attivato! I workout saranno su MyWhoosh e Garmin a breve.');
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          showToast(`Errore GitHub (${res.status}): ${errData.message || 'Verifica il Token'}`, true);
+        }
+      } catch (e) {
+        showToast('Errore di connessione a GitHub: ' + e.message, true);
+      } finally {
+        btnText.innerText = originalText;
+        btn.disabled = false;
+      }
     });
 
     // Init

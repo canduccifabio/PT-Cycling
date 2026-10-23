@@ -245,17 +245,44 @@ def main() -> int:
     if not args.dry_run:
         client.cleanup_managed_events(window_start_str, window_end_str)
 
-    # Build structured workouts
+    # Telegram notification helper
+    def send_telegram_notification(msg: str) -> None:
+        tg_token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+        tg_chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+        if tg_token and tg_chat_id:
+            try:
+                tg_url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
+                payload = {
+                    "chat_id": tg_chat_id,
+                    "text": msg,
+                    "parse_mode": "Markdown",
+                    "disable_web_page_preview": True
+                }
+                resp = requests.post(tg_url, json=payload, timeout=10)
+                if resp.status_code == 200:
+                    logger.info("📱 Telegram push notification delivered successfully!")
+                else:
+                    logger.warning(f"Telegram notification returned status {resp.status_code}")
+            except Exception as e:
+                logger.warning(f"Could not send Telegram notification: {e}")
+
+    # Build structured workouts with progression levels and archetype rotation
+    current_levels = eval_result.updated_progression_levels
+    recent_used = state.get("used_archetypes", [])
+
     builder = WorkoutBuilder(ftp_watts=effective_ftp)
     weekly_schedule = builder.build_weekly_schedule(
         week=effective_week,
         training_days=normalized_days,
         weekday_duration=weekday_dur,
-        friday_duration=friday_dur
+        friday_duration=friday_dur,
+        progression_levels=current_levels,
+        used_archetypes=recent_used
     )
 
     created_events: List[Dict[str, Any]] = []
     day_to_offset = {"MON": 0, "TUE": 1, "WED": 2, "THU": 3, "FRI": 4, "SAT": 5, "SUN": 6}
+    newly_used_archetypes = list(recent_used)
 
     for day_code, workout_spec in weekly_schedule:
         offset = day_to_offset.get(day_code, 0)
@@ -266,6 +293,9 @@ def main() -> int:
             f"Scheduling {workout_spec.title} for {day_code} ({session_date.strftime('%Y-%m-%d')}) "
             f"[{workout_spec.target_duration_minutes} min, Est TSS: {workout_spec.estimated_tss}]"
         )
+
+        if workout_spec.archetype_id not in newly_used_archetypes:
+            newly_used_archetypes.append(workout_spec.archetype_id)
 
         if not args.dry_run:
             ev = client.create_workout_event(
@@ -278,12 +308,18 @@ def main() -> int:
             if ev:
                 created_events.append(ev)
 
+    # Keep only last 15 archetypes in history to allow natural cyclic rotation
+    if len(newly_used_archetypes) > 15:
+        newly_used_archetypes = newly_used_archetypes[-15:]
+
     # Update State
     state["current_ftp"] = effective_ftp
     state["mesocycle_week"] = effective_week
     state["preferred_days"] = normalized_days
     state["weekday_duration"] = weekday_dur
     state["friday_duration"] = friday_dur
+    state["progression_levels"] = current_levels
+    state["used_archetypes"] = newly_used_archetypes
     state["last_evaluation_date"] = today.strftime("%Y-%m-%dT%H:%M:%SZ")
     state["last_scheduled_week_start"] = window_start_str
     if eval_result.ftp_increased and effective_week == 1:
@@ -303,6 +339,7 @@ def main() -> int:
         "evaluated_sessions": eval_result.evaluated_sessions_count,
         "scheduled_sessions_count": len(weekly_schedule),
         "training_days": normalized_days,
+        "progression_levels": current_levels,
         "summary": eval_result.summary_message
     }
     state.setdefault("history", []).append(history_entry)
@@ -314,6 +351,7 @@ def main() -> int:
 **Settimana Programmata:** {window_start_str} -> {window_end_str}  
 **Stato Mesociclo:** Settimana **{effective_week}** di 4 (Ciclo 3:1)  
 **FTP Attuale:** **{effective_ftp} Watt** {'🚀 *(Auto-Incremento +2%!)*' if eval_result.ftp_increased else ''}  
+**Livelli WorldTour:** VO2max `{current_levels.get('vo2max', 1.0):.1f}` | SweetSpot `{current_levels.get('sweet_spot', 1.0):.1f}` | Soglia `{current_levels.get('threshold', 1.0):.1f}`  
 **Rullo Target:** Elite Suito (Modalità ERG con protezione anti-spiral)  
 **Sincronizzazione:** Intervals.icu ➡️ MyWhoosh (Tablet Android) & Garmin Edge 850  
 
@@ -345,6 +383,7 @@ def main() -> int:
 
     logger.info("\n" + summary_md)
     write_github_step_summary(summary_md)
+    send_telegram_notification(summary_md)
     logger.info("✅ Training Orchestration Completed Successfully!")
     return 0
 

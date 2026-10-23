@@ -50,6 +50,8 @@ class BlockEvaluationResult:
     average_decoupling: float
     evaluated_sessions_count: int
     summary_message: str
+    updated_progression_levels: Dict[str, float]
+
 
 
 class PerformanceAnalyzer:
@@ -156,6 +158,12 @@ class PerformanceAnalyzer:
         """Evaluate progression based on 3:1 mesocycle state machine and recent sessions."""
         current_ftp = int(current_state.get("current_ftp", 205))
         current_week = int(current_state.get("mesocycle_week", 1))
+        # Load current progression levels
+        progression_levels = dict(current_state.get("progression_levels", {
+            "vo2max": 1.0,
+            "sweet_spot": 1.0,
+            "threshold": 1.0
+        }))
 
         # Handle manual override first if provided
         if override_ftp and override_ftp > 50:
@@ -171,7 +179,8 @@ class PerformanceAnalyzer:
                 average_efficiency_factor=0.0,
                 average_decoupling=0.0,
                 evaluated_sessions_count=len(recent_evaluations),
-                summary_message=f"FTP aggiornato manualmente a {override_ftp}W."
+                summary_message=f"FTP aggiornato manualmente a {override_ftp}W.",
+                updated_progression_levels=progression_levels
             )
 
         # Baseline evaluation metrics
@@ -189,7 +198,8 @@ class PerformanceAnalyzer:
                 average_efficiency_factor=0.0,
                 average_decoupling=0.0,
                 evaluated_sessions_count=0,
-                summary_message=f"Nessuna attività registrata; passaggio pianificato da Settimana {current_week} a {next_week}."
+                summary_message=f"Nessuna attività registrata; passaggio pianificato da Settimana {current_week} a {next_week}.",
+                updated_progression_levels=progression_levels
             )
 
         avg_compliance = sum(e.compliance_score for e in recent_evaluations) / len(recent_evaluations)
@@ -220,6 +230,9 @@ class PerformanceAnalyzer:
                     f"Ottimo completamento ({avg_compliance:.0%}) e tenuta cardiovascolare "
                     f"(Decoupling: {avg_decoupling:.1f}%). Avanzamento a Settimana {next_week}."
                 )
+                # Increment individual energy system progression levels
+                for k in progression_levels:
+                    progression_levels[k] = round(min(10.0, progression_levels[k] + 0.4), 1)
             else:
                 next_week = current_week
                 decision = f"REPEAT_WEEK_{current_week}"
@@ -233,6 +246,8 @@ class PerformanceAnalyzer:
             next_week = 4
             decision = "ADVANCE_TO_DELOAD_WEEK_4"
             msg = "Completato il blocco di picco ad alta densità. Settimana 4: Scarico attivo e test di recupero."
+            for k in progression_levels:
+                progression_levels[k] = round(min(10.0, progression_levels[k] + 0.3), 1)
 
         elif current_week >= 4:
             # Week 4: Deload completed -> Evaluate entire 4-week mesocycle for Auto-Adaptive FTP increase
@@ -250,6 +265,8 @@ class PerformanceAnalyzer:
                     f"Nuovo FTP calcolato: {next_ftp}W (+{step_watts}W, +{self.ftp_increase_pct*100:.1f}%). "
                     f"Inizio nuovo mesocycle 3:1 (Settimana 1 - Base)."
                 )
+                # Reset progression levels to baseline for the new higher FTP
+                progression_levels = {"vo2max": 1.0, "sweet_spot": 1.0, "threshold": 1.0}
             else:
                 next_ftp = current_ftp
                 ftp_increased = False
@@ -272,5 +289,6 @@ class PerformanceAnalyzer:
             average_efficiency_factor=round(avg_ef, 2),
             average_decoupling=round(avg_decoupling, 1),
             evaluated_sessions_count=len(recent_evaluations),
-            summary_message=msg
+            summary_message=msg,
+            updated_progression_levels=progression_levels
         )

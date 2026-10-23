@@ -1,0 +1,46 @@
+{
+  "athlete": {
+    "name": "WorldTour Indoor Specialist",
+    "starting_ftp_watts": 205,
+    "trainer": {
+      "model": "Elite Suito",
+      "mode": "ERG",
+      "flywheel_inertia_kg": 3.5,
+      "warmup_reactive_minutes": 7.5,
+      "anti_spiral_prep_seconds": 10,
+      "high_cadence_alert_threshold_pct": 110,
+      "cooldown_minutes": 4.5
+    }
+  },
+  "training_schedule": {
+    "default_days": ["MON", "WED", "FRI"],
+    "min_duration_minutes": 42,
+    "max_duration_minutes": 60,
+    "default_weekday_minutes": 50,
+    "default_friday_minutes": 60,
+    "slot_structure": {
+      "session_1": {
+        "type": "VO2MAX_MICROBURSTS",
+        "name": "Sessione 1 - VO2max & Micro-Intervalli",
+        "description": "Lavoro neuromuscolare e consumo di ossigeno ad alta cadenza"
+      },
+      "session_2": {
+        "type": "SWEET_SPOT",
+        "name": "Sessione 2 - Sweet Spot & Densità Aerobica",
+        "description": "Lavoro sostenuto 88-93% FTP per massimizzare la capacità aerobica"
+      },
+      "session_3": {
+        "type": "THRESHOLD_OVER_UNDER",
+        "name": "Sessione 3 - Soglia & Over-Under",
+        "description": "Clearance del lattato e tolleranza al debito di ossigeno"
+      }
+    }
+  },
+  "progression_policy": {
+    "mesocycle_type": "3:1",
+    "min_compliance_to_advance": 0.85,
+    "max_acceptable_aerobic_decoupling_pct": 6.5,
+    "auto_ftp_increase_percentage": 0.02,
+    "ftp_step_watts_minimum": 4
+  }
+}

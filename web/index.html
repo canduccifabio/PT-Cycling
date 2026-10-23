@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PT Cycling | WorldTour Indoor Coach</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+            },
+            dark: {
+              800: '#1e293b',
+              850: '#172033',
+              900: '#0f172a',
+              950: '#090d16'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Mobile-first touch-friendly styles */
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    input[type=range]::-webkit-slider-thumb {
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #f97316;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(249, 115, 22, 0.5);
+    }
+  </style>
+</head>
+<body class="bg-dark-950 text-slate-100 min-h-screen font-sans pb-24 antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Mobile Top Bar -->
+  <header class="sticky top-0 z-50 glass-card border-b border-slate-800 px-4 py-3">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-amber-400 flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
+          <i class="fa-solid fa-bicycle text-sm"></i>
+        </div>
+        <div>
+          <h1 class="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+            PT CYCLING <span class="text-[10px] bg-brand-500/20 text-brand-500 border border-brand-500/30 px-1.5 py-0.5 rounded font-mono">WORLDTOUR</span>
+          </h1>
+          <p class="text-[10px] text-slate-400">Elite Suito ERG • Zero-PC Cloud</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-1.5">
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse mr-1"></span> Cloud Active
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-md mx-auto px-4 py-4 space-y-4">
+
+    <!-- KPI Cards Row -->
+    <div class="grid grid-cols-2 gap-3">
+      <!-- FTP Card -->
+      <div class="glass-card rounded-2xl p-3.5 relative overflow-hidden">
+        <div class="absolute -right-3 -bottom-3 text-slate-800/40 text-6xl pointer-events-none">
+          <i class="fa-solid fa-bolt"></i>
+        </div>
+        <div class="flex items-center justify-between text-slate-400 text-xs mb-1">
+          <span>Potenza Soglia (FTP)</span>
+          <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
+        </div>
+        <div class="flex items-baseline space-x-1">
+          <span id="currentFtpDisplay" class="text-3xl font-extrabold tracking-tight text-white">205</span>
+          <span class="text-xs text-slate-400 font-semibold">Watt</span>
+        </div>
+        <div class="mt-1 text-[11px] text-emerald-400 flex items-center gap-1">
+          <i class="fa-solid fa-arrow-trend-up"></i> Auto-Adaptive (+2%/ciclo)
+        </div>
+      </div>
+
+      <!-- Mesocycle Week Card -->
+      <div class="glass-card rounded-2xl p-3.5 relative overflow-hidden">
+        <div class="absolute -right-3 -bottom-3 text-slate-800/40 text-6xl pointer-events-none">
+          <i class="fa-solid fa-calendar-days"></i>
+        </div>
+        <div class="flex items-center justify-between text-slate-400 text-xs mb-1">
+          <span>Fase Mesociclo</span>
+          <i class="fa-solid fa-layer-group text-brand-500 text-xs"></i>
+        </div>
+        <div class="flex items-baseline space-x-1">
+          <span id="currentWeekDisplay" class="text-3xl font-extrabold tracking-tight text-white">W1</span>
+          <span class="text-xs text-slate-400 font-semibold">/ 4 (Base)</span>
+        </div>
+        <div class="mt-1 text-[11px] text-slate-400">
+          Progressione Sovraccarico 3:1
+        </div>
+      </div>
+    </div>
+
+    <!-- Mesocycle 3:1 Interactive Visualizer -->
+    <div class="glass-card rounded-2xl p-4">
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+          <i class="fa-solid fa-chart-line text-brand-500"></i> Ciclo 3:1 Sovraccarico Progressivo
+        </h2>
+        <span id="weekLabelBadge" class="text-[11px] px-2 py-0.5 rounded bg-brand-500/20 text-brand-400 font-medium">Settimana 1: Base</span>
+      </div>
+      
+      <!-- Progress Track -->
+      <div class="grid grid-cols-4 gap-1.5 pt-1">
+        <div class="flex flex-col items-center">
+          <div id="stepW1" class="w-full h-2 rounded-full bg-brand-500 shadow-sm shadow-brand-500/50"></div>
+          <span class="text-[10px] text-brand-400 mt-1 font-bold">W1 Base</span>
+          <span class="text-[9px] text-slate-500">TiZ Standard</span>
+        </div>
+        <div class="flex flex-col items-center">
+          <div id="stepW2" class="w-full h-2 rounded-full bg-slate-700"></div>
+          <span class="text-[10px] text-slate-400 mt-1">W2 Densità</span>
+          <span class="text-[9px] text-slate-500">+15% TiZ</span>
+        </div>
+        <div class="flex flex-col items-center">
+          <div id="stepW3" class="w-full h-2 rounded-full bg-slate-700"></div>
+          <span class="text-[10px] text-slate-400 mt-1">W3 Picco</span>
+          <span class="text-[9px] text-slate-500">Max Carico</span>
+        </div>
+        <div class="flex flex-col items-center">
+          <div id="stepW4" class="w-full h-2 rounded-full bg-slate-700"></div>
+          <span class="text-[10px] text-slate-400 mt-1">W4 Scarico</span>
+          <span class="text-[9px] text-emerald-400 font-bold">+2% FTP Test</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Control Panel Form -->
+    <div class="glass-card rounded-2xl p-4 space-y-4">
+      <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center justify-between">
+        <span class="flex items-center gap-1.5">
+          <i class="fa-solid fa-sliders text-brand-500"></i> Telecomando Allenamenti
+        </span>
+        <span class="text-[10px] text-slate-400 font-normal">Modifiche da Smartphone</span>
+      </h2>
+
+      <!-- Day Selector -->
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-2">
+          Giorni Settimanali (Seleziona i tuoi giorni indoor)
+        </label>
+        <div class="grid grid-cols-7 gap-1" id="daysContainer">
+          <button type="button" data-day="MON" class="day-btn py-2 text-xs font-bold rounded-xl transition-all bg-brand-500 text-white shadow-md shadow-brand-500/30">LUN</button>
+          <button type="button" data-day="TUE" class="day-btn py-2 text-xs font-bold rounded-xl transition-all bg-dark-800 text-slate-400">MAR</button>
+          <button type="button" data-day="WED" class="day-btn py-2 text-xs font-bold rounded-xl transition-all bg-brand-500 text-white shadow-md shadow-brand-500/30">MER</button>
+          <button type="button" data-day="THU" class="day-btn py-2 text-xs font-bold rounded-xl transition-all bg-dark-800 text-slate-400">GIO</button>
+          <button type="button" data-day="FRI" class="day-btn py-2 text-xs font-bold rounded-xl transition-all bg-brand-500 text-white shadow-md shadow-brand-500/30">VEN</button>
+          <button type="button" data-day="SAT" class="day-btn py-2 text-xs font-bold rounded-xl transition-all bg-dark-800 text-slate-400">SAB</button>
+          <button type="button" data-day="SUN" class="day-btn py-2 text-xs font-bold rounded-xl transition-all bg-dark-800 text-slate-400">DOM</button>
+        </div>
+      </div>
+
+      <!-- Duration Selector (42 - 60 min) -->
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <label class="text-xs font-medium text-slate-300">
+            Durata Sessione (Strettamente 42 - 60 min)
+          </label>
+          <span class="text-xs font-bold text-brand-500"><span id="durationValue">50</span> minuti</span>
+        </div>
+        <input type="range" id="durationSlider" min="42" max="60" value="50" step="1" 
+          class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+        <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+          <span>42m (Alta Densità)</span>
+          <span>50m (Standard)</span>
+          <span>60m (Endurance/Max)</span>
+        </div>
+      </div>
+
+      <!-- Manual FTP Override -->
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">
+          Override Manuale FTP (Opzionale, Watt)
+        </label>
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <input type="number" id="overrideFtpInput" placeholder="Es. 205 o 210" min="100" max="500"
+              class="w-full bg-dark-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+            <span class="absolute right-3 top-2 text-xs text-slate-500">Watt</span>
+          </div>
+          <button type="button" id="btnPlus2Pct" class="px-3 py-2 bg-dark-800 border border-slate-700 rounded-xl text-xs text-slate-300 hover:text-white hover:border-brand-500">
+            +2%
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="pt-2 space-y-2">
+        <button type="button" id="btnDispatchGitHub" 
+          class="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-gradient-to-r from-brand-600 to-amber-500 shadow-lg shadow-brand-500/30 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+          <i class="fa-brands fa-github text-sm"></i>
+          <span>Programma Settimana su GitHub</span>
+        </button>
+
+        <button type="button" id="btnCopyConfig"
+          class="w-full py-2.5 px-4 rounded-xl font-semibold text-xs text-slate-300 bg-dark-800 border border-slate-700 hover:bg-slate-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+          <i class="fa-solid fa-copy text-xs"></i>
+          <span>Copia Parametri per App GitHub Mobile</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Workout Preview Card -->
+    <div class="glass-card rounded-2xl p-4 space-y-3">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+          <i class="fa-solid fa-dumbbell text-brand-500"></i> Anteprima Sessioni Rullo ERG
+        </h2>
+        <span class="text-[10px] text-slate-400">Ottimizzato Suito</span>
+      </div>
+
+      <div class="space-y-2.5" id="workoutList">
+        <!-- Session 1 -->
+        <div class="bg-dark-850/80 border border-slate-800 rounded-xl p-3">
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="text-[10px] font-bold text-red-400 uppercase tracking-wider">Sessione 1 • VO2max Microbursts</span>
+              <h3 class="text-xs font-bold text-white mt-0.5">Micro-intervalli 30/30 o 35/25 ad alta cadenza</h3>
+            </div>
+            <span class="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300">45-50 min</span>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-400 space-y-1">
+            <p>🎯 <strong class="text-slate-200">Target VO2:</strong> 115-120% FTP (<span class="vo2-target font-bold text-amber-400">236-246W</span>) a 100-105 RPM.</p>
+            <p>🛡️ <strong class="text-slate-200">Anti-Spiral Suito:</strong> Allarme testuale "Aumenta la cadenza a 95-100 RPM prima dello step!".</p>
+          </div>
+        </div>
+
+        <!-- Session 2 -->
+        <div class="bg-dark-850/80 border border-slate-800 rounded-xl p-3">
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Sessione 2 • Sweet Spot Engine</span>
+              <h3 class="text-xs font-bold text-white mt-0.5">Ripetute 3x 8-10m a 88-93% FTP</h3>
+            </div>
+            <span class="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300">50 min</span>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-400 space-y-1">
+            <p>🎯 <strong class="text-slate-200">Target Potenza:</strong> 90% FTP (<span class="ss-target font-bold text-amber-400">185W</span>) a 90-92 RPM.</p>
+            <p>⚙️ <strong class="text-slate-200">Freno Suito:</strong> Erogazione fluida e lineare della coppia magnetica.</p>
+          </div>
+        </div>
+
+        <!-- Session 3 -->
+        <div class="bg-dark-850/80 border border-slate-800 rounded-xl p-3">
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Sessione 3 • Soglia & Over-Under</span>
+              <h3 class="text-xs font-bold text-white mt-0.5">Lactate Clearance (3x 8-10m Over-Under)</h3>
+            </div>
+            <span class="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300">60 min</span>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-400 space-y-1">
+            <p>🎯 <strong class="text-slate-200">Target Oscillante:</strong> Under 92-95% (<span class="under-target font-bold text-slate-200">189-195W</span>) / Over 105-110% (<span class="over-target font-bold text-amber-400">215-226W</span>).</p>
+            <p>🔄 <strong class="text-slate-200">Sync:</strong> Immediata su calendario MyWhoosh e Garmin Edge 850.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sync Topology Info -->
+    <div class="glass-card rounded-2xl p-4">
+      <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+        <i class="fa-solid fa-arrows-split-up-and-left text-brand-500"></i> Architettura di Sincronizzazione 100% Cloud
+      </h3>
+      <div class="text-[11px] text-slate-400 space-y-2">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-cloud text-brand-500"></i>
+          <span><strong>GitHub Actions:</strong> Generatore serverless (cron dom 20:00 o trigger mobile).</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-network-wired text-blue-400"></i>
+          <span><strong>Intervals.icu API:</strong> Hub centrale con parsing sintassi FIT/ZWO nativo.</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-tablet-screen-button text-emerald-400"></i>
+          <span><strong>MyWhoosh (Tablet Android):</strong> Riceve gli allenamenti ERG via Intervals.icu.</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-microchip text-slate-300"></i>
+          <span><strong>Garmin Edge 850 (Fallback):</strong> Sincronizzazione automatica tramite Garmin Connect.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 left-4 right-4 max-w-md mx-auto hidden bg-emerald-600 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center justify-between transition-all">
+      <span id="toastMsg">Parametri copiati negli appunti!</span>
+      <i class="fa-solid fa-circle-check text-sm ml-2"></i>
+    </div>
+
+  </main>
+
+  <script>
+    // State
+    let currentFtp = 205;
+    let mesocycleWeek = 1;
+    let selectedDays = ['MON', 'WED', 'FRI'];
+    let selectedDuration = 50;
+
+    // Load state from local athlete_state.json if hosted, or fallback
+    async function loadAthleteState() {
+      try {
+        const res = await fetch('../state/athlete_state.json');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.current_ftp) currentFtp = data.current_ftp;
+          if (data.mesocycle_week) mesocycleWeek = data.mesocycle_week;
+          if (data.preferred_days && data.preferred_days.length) selectedDays = data.preferred_days;
+          if (data.weekday_duration) selectedDuration = data.weekday_duration;
+        }
+      } catch (err) {
+        console.log('Using default state params:', err);
+      }
+      renderUI();
+    }
+
+    function renderUI() {
+      document.getElementById('currentFtpDisplay').innerText = currentFtp;
+      document.getElementById('currentWeekDisplay').innerText = `W${mesocycleWeek}`;
+      
+      const weekLabels = {
+        1: 'Settimana 1: Base',
+        2: 'Settimana 2: Densità (+15% TiZ)',
+        3: 'Settimana 3: Picco',
+        4: 'Settimana 4: Scarico & Auto-FTP Test'
+      };
+      document.getElementById('weekLabelBadge').innerText = weekLabels[mesocycleWeek] || `W${mesocycleWeek}`;
+
+      // Update week steps
+      for (let i = 1; i <= 4; i++) {
+        const step = document.getElementById(`stepW${i}`);
+        if (step) {
+          if (i === mesocycleWeek) {
+            step.className = 'w-full h-2 rounded-full bg-brand-500 shadow-sm shadow-brand-500/50';
+          } else if (i < mesocycleWeek) {
+            step.className = 'w-full h-2 rounded-full bg-emerald-500';
+          } else {
+            step.className = 'w-full h-2 rounded-full bg-slate-700';
+          }
+        }
+      }
+
+      // Update day buttons
+      document.querySelectorAll('.day-btn').forEach(btn => {
+        const day = btn.getAttribute('data-day');
+        if (selectedDays.includes(day)) {
+          btn.className = 'day-btn py-2 text-xs font-bold rounded-xl transition-all bg-brand-500 text-white shadow-md shadow-brand-500/30';
+        } else {
+          btn.className = 'day-btn py-2 text-xs font-bold rounded-xl transition-all bg-dark-800 text-slate-400';
+        }
+      });
+
+      // Update duration
+      document.getElementById('durationSlider').value = selectedDuration;
+      document.getElementById('durationValue').innerText = selectedDuration;
+
+      // Update calculated Watts
+      const vo2Min = Math.round(currentFtp * 1.15);
+      const vo2Max = Math.round(currentFtp * 1.20);
+      document.querySelectorAll('.vo2-target').forEach(el => el.innerText = `${vo2Min}-${vo2Max}W`);
+
+      const ss = Math.round(currentFtp * 0.90);
+      document.querySelectorAll('.ss-target').forEach(el => el.innerText = `${ss}W`);
+
+      const under = Math.round(currentFtp * 0.93);
+      const over = Math.round(currentFtp * 1.08);
+      document.querySelectorAll('.under-target').forEach(el => el.innerText = `${under}W`);
+      document.querySelectorAll('.over-target').forEach(el => el.innerText = `${over}W`);
+    }
+
+    // Event Listeners
+    document.querySelectorAll('.day-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const day = btn.getAttribute('data-day');
+        if (selectedDays.includes(day)) {
+          if (selectedDays.length > 1) {
+            selectedDays = selectedDays.filter(d => d !== day);
+          }
+        } else {
+          selectedDays.push(day);
+        }
+        renderUI();
+      });
+    });
+
+    const slider = document.getElementById('durationSlider');
+    slider.addEventListener('input', (e) => {
+      selectedDuration = parseInt(e.target.value);
+      document.getElementById('durationValue').innerText = selectedDuration;
+    });
+
+    document.getElementById('btnPlus2Pct').addEventListener('click', () => {
+      const nextVal = Math.round(currentFtp * 1.02);
+      document.getElementById('overrideFtpInput').value = nextVal;
+    });
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').innerText = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3500);
+    }
+
+    document.getElementById('btnCopyConfig').addEventListener('click', () => {
+      const ftpVal = document.getElementById('overrideFtpInput').value.trim();
+      const text = `training_days: ${selectedDays.join(',')}\nmax_duration_min: ${selectedDuration}\noverride_ftp: ${ftpVal}`;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Parametri copiati! Incollali su GitHub Mobile.');
+      }).catch(() => {
+        showToast(`Parametri: ${selectedDays.join(',')} | ${selectedDuration} min`);
+      });
+    });
+
+    document.getElementById('btnDispatchGitHub').addEventListener('click', () => {
+      const currentUrl = window.location.href;
+      // Open GitHub actions page if repository URL can be deduced, or copy parameters
+      const repoUrl = "https://github.com"; 
+      window.open('https://github.com', '_blank');
+      showToast('Apri l\'app GitHub Mobile -> Actions -> Run Workflow!');
+    });
+
+    // Init
+    loadAthleteState();
+  </script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+name: "🚴 PT Cycling WorldTour Coach"
+
+on:
+  schedule:
+    # Esegue automaticamente ogni domenica sera alle 19:00 UTC (20:00/21:00 orario italiano)
+    - cron: '0 19 * * 0'
+
+  workflow_dispatch:
+    inputs:
+      training_days:
+        description: "📅 Giorni di allenamento (es. MON,WED,FRI o TUE,THU,FRI)"
+        required: true
+        default: "MON,WED,FRI"
+        type: string
+
+      max_duration_min:
+        description: "⏱️ Durata sessione (minuti consentiti tra 42 e 60)"
+        required: true
+        default: "50"
+        type: choice
+        options:
+          - "42"
+          - "45"
+          - "50"
+          - "55"
+          - "60"
+
+      override_ftp:
+        description: "⚡ Override Manuale FTP in Watt (lascia vuoto per calcolo automatico)"
+        required: false
+        default: ""
+        type: string
+
+      dry_run:
+        description: "🧪 Test / Simulazione (non invia modifiche a Intervals.icu)"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: pt-cycling-scheduler
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  coach-orchestration:
+    name: "Analisi Telemetria & Programmazione Settimanale"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Checkout Codice Repository"
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Configura Ambiente Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: "Installa Dipendenze"
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: "Esegui PT Cycling Orchestrator"
+        env:
+          INTERVALS_ATHLETE_ID: ${{ secrets.INTERVALS_ATHLETE_ID }}
+          INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
+          PYTHONPATH: "src"
+        run: |
+          ARGS=""
+
+          # Gestione input giorni da GitHub Mobile
+          if [ -n "${{ github.event.inputs.training_days }}" ]; then
+            ARGS="$ARGS --training-days '${{ github.event.inputs.training_days }}'"
+          fi
+
+          # Gestione durata sessione (42-60 min)
+          if [ -n "${{ github.event.inputs.max_duration_min }}" ]; then
+            ARGS="$ARGS --max-duration-min ${{ github.event.inputs.max_duration_min }}"
+          fi
+
+          # Gestione eventuale override FTP
+          if [ -n "${{ github.event.inputs.override_ftp }}" ]; then
+            ARGS="$ARGS --override-ftp ${{ github.event.inputs.override_ftp }}"
+          fi
+
+          # Gestione Dry-Run
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+
+          echo "Esecuzione: python src/main.py $ARGS"
+          eval python src/main.py $ARGS
+
+      - name: "Commit & Push dello Stato Atleta Aggiornato"
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "PT-Cycling-Coach-Bot"
+          git add state/athlete_state.json
+
+          if git diff --staged --quiet; then
+            echo "Nessuna variazione di stato da salvare."
+          else
+            git commit -m "chore(coach): update athlete state & FTP progression [skip ci]"
+            git push origin HEAD:${{ github.ref }}
+            echo "Stato atleta salvato e sincronizzato sul repository."
+          fi

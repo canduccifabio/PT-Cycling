@@ -1,0 +1,18 @@
+{
+  "current_ftp": 205,
+  "mesocycle_week": 1,
+  "mesocycle_block": 1,
+  "preferred_days": [
+    "MON",
+    "WED",
+    "FRI"
+  ],
+  "min_duration": 42,
+  "max_duration": 60,
+  "weekday_duration": 50,
+  "friday_duration": 60,
+  "last_evaluation_date": null,
+  "last_scheduled_week_start": null,
+  "total_blocks_completed": 0,
+  "history": []
+}

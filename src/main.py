@@ -64,18 +64,45 @@ def save_json_file(file_path: str, data: Dict[str, Any]) -> None:
     logger.info(f"Persisted updated state to {file_path}")
 
 
-def get_next_week_dates(start_from: Optional[datetime] = None) -> Tuple[datetime, datetime]:
-    """Calculate date of next Monday and the full incoming week (Monday to Sunday)."""
+def get_target_week_dates(
+    start_from: Optional[datetime] = None,
+    specific_start_date: Optional[str] = None,
+    postpone_weeks: int = 0
+) -> Tuple[datetime, datetime]:
+    """Calculate date of target Monday and full incoming week (Monday to Sunday).
+    Supports:
+    - Specific custom start date (e.g. '2026-11-02')
+    - Postponing by N weeks (+7, +14 days)
+    - Default incoming Monday
+    """
+    if specific_start_date and specific_start_date.strip():
+        try:
+            parsed = datetime.strptime(specific_start_date.strip()[:10], "%Y-%m-%d")
+            # Align to Monday of that week
+            offset = parsed.weekday()  # Monday is 0
+            target_monday = (parsed - timedelta(days=offset)).replace(
+                hour=7, minute=0, second=0, microsecond=0
+            )
+            target_sunday = target_monday + timedelta(days=6, hours=16)
+            return target_monday, target_sunday
+        except ValueError:
+            logger.warning(
+                f"Could not parse specific start date '{specific_start_date}', falling back to standard calculation."
+            )
+
     now = start_from or datetime.now()
     days_until_next_monday = (7 - now.weekday()) % 7
     if days_until_next_monday == 0:
         days_until_next_monday = 7
-    next_monday = (now + timedelta(days=days_until_next_monday)).replace(
+
+    # Add postponement offset in weeks
+    days_until_next_monday += max(0, int(postpone_weeks)) * 7
+
+    target_monday = (now + timedelta(days=days_until_next_monday)).replace(
         hour=7, minute=0, second=0, microsecond=0
     )
-    next_sunday = next_monday + timedelta(days=6, hours=16)
-    return next_monday, next_sunday
-
+    target_sunday = target_monday + timedelta(days=6, hours=16)
+    return target_monday, target_sunday
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -111,6 +138,23 @@ def parse_arguments() -> argparse.Namespace:
         type=int,
         default=0,
         help="Manual FTP override in Watts (optional)"
+    )
+    parser.add_argument(
+        "--start-date",
+        type=str,
+        default="",
+        help="Specific start date for the scheduled week (YYYY-MM-DD)"
+    )
+    parser.add_argument(
+        "--postpone-weeks",
+        type=int,
+        default=0,
+        help="Postpone start of workouts by N weeks (e.g. 1, 2)"
+    )
+    parser.add_argument(
+        "--freeze-progression",
+        action="store_true",
+        help="Freeze mesocycle progression without penalty (pause/illness/vacation)"
     )
     parser.add_argument(
         "--dry-run",
@@ -249,14 +293,44 @@ def main() -> int:
         if not args.dry_run:
             client.update_ftp(effective_ftp)
 
-    # Incoming week planning window
-    next_monday, next_sunday = get_next_week_dates(today)
-    window_start_str = next_monday.strftime("%Y-%m-%d")
-    window_end_str = next_sunday.strftime("%Y-%m-%d")
+    # Check if athlete requested freezing the mesocycle progression (pause/vacation/illness)
+    if args.freeze_progression:
+        logger.info("⏸️ Athlete requested mesocycle freeze (pause/illness/vacation). Holding current week and levels.")
+        effective_week = state.get("mesocycle_week", 1)
+        current_levels = dict(state.get("progression_levels", {"vo2max": 1.0, "sweet_spot": 1.0, "threshold": 1.0}))
+        eval_result.next_week = effective_week
+        eval_result.updated_progression_levels = current_levels
+        eval_result.advancement_decision = "FROZEN_BY_ATHLETE"
+        eval_result.summary_message = "⏸️ Mesociclo congelato su richiesta dell'atleta (Pausa / Vacanza / Recupero). Settimana e livelli mantenuti invariati."
+    else:
+        current_levels = eval_result.updated_progression_levels
 
-    logger.info(f"Target Incoming Week: {window_start_str} to {window_end_str}")
+    # Target week planning window (supports custom start date and postponement)
+    target_monday, target_sunday = get_target_week_dates(
+        start_from=today,
+        specific_start_date=args.start_date,
+        postpone_weeks=args.postpone_weeks
+    )
+    window_start_str = target_monday.strftime("%Y-%m-%d")
+    window_end_str = target_sunday.strftime("%Y-%m-%d")
 
-    # Remove any existing managed workouts for next week
+    logger.info(f"Target Incoming Week: {window_start_str} to {window_end_str} (postpone_weeks={args.postpone_weeks})")
+
+    # If postponing, clean up workouts from the previously scheduled window so they don't linger
+    prev_week_start = state.get("last_scheduled_week_start")
+    if prev_week_start and prev_week_start != window_start_str and not args.dry_run:
+        try:
+            prev_start_dt = datetime.strptime(prev_week_start, "%Y-%m-%d")
+            prev_end_dt = prev_start_dt + timedelta(days=6)
+            logger.info(
+                f"Postponement detected: cleaning up previously scheduled workouts from "
+                f"{prev_week_start} to {prev_end_dt.strftime('%Y-%m-%d')}..."
+            )
+            client.cleanup_managed_events(prev_week_start, prev_end_dt.strftime("%Y-%m-%d"))
+        except Exception as e:
+            logger.warning(f"Could not clean up previous scheduled window: {e}")
+
+    # Remove any existing managed workouts for the target week
     if not args.dry_run:
         client.cleanup_managed_events(window_start_str, window_end_str)
 
@@ -283,7 +357,6 @@ def main() -> int:
                 logger.warning(f"Could not send Telegram notification: {e}")
 
     # Build structured workouts with progression levels and archetype rotation
-    current_levels = eval_result.updated_progression_levels
     recent_used = state.get("used_archetypes", [])
 
     builder = WorkoutBuilder(ftp_watts=effective_ftp)
@@ -302,7 +375,7 @@ def main() -> int:
 
     for day_code, workout_spec in weekly_schedule:
         offset = day_to_offset.get(day_code, 0)
-        session_date = next_monday + timedelta(days=offset)
+        session_date = target_monday + timedelta(days=offset)
         session_iso = session_date.strftime("%Y-%m-%dT07:00:00")
 
         logger.info(

@@ -31,6 +31,29 @@ on:
         default: ""
         type: string
 
+      postpone_weeks:
+        description: "⏳ Posticipa Partenza Programma (settimane da saltare)"
+        required: false
+        default: "0"
+        type: choice
+        options:
+          - "0"
+          - "1"
+          - "2"
+          - "3"
+
+      start_date:
+        description: "📅 Data Inizio Personalizzata (opzionale YYYY-MM-DD)"
+        required: false
+        default: ""
+        type: string
+
+      freeze_progression:
+        description: "⏸️ Congela Mesociclo (Pausa / Vacanza / Malattia: zero penalità)"
+        required: false
+        default: false
+        type: boolean
+
       dry_run:
         description: "🧪 Test / Simulazione (non invia modifiche a Intervals.icu)"
         required: false
@@ -89,6 +112,21 @@ jobs:
           # Gestione eventuale override FTP
           if [ -n "${{ github.event.inputs.override_ftp }}" ]; then
             ARGS="$ARGS --override-ftp ${{ github.event.inputs.override_ftp }}"
+          fi
+
+          # Gestione posticipo settimane
+          if [ -n "${{ github.event.inputs.postpone_weeks }}" ] && [ "${{ github.event.inputs.postpone_weeks }}" != "0" ]; then
+            ARGS="$ARGS --postpone-weeks ${{ github.event.inputs.postpone_weeks }}"
+          fi
+
+          # Gestione data personalizzata
+          if [ -n "${{ github.event.inputs.start_date }}" ]; then
+            ARGS="$ARGS --start-date '${{ github.event.inputs.start_date }}'"
+          fi
+
+          # Gestione congelamento mesociclo
+          if [ "${{ github.event.inputs.freeze_progression }}" = "true" ]; then
+            ARGS="$ARGS --freeze-progression"
           fi
 
           # Gestione Dry-Run

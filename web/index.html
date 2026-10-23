@@ -242,6 +242,37 @@
         </div>
       </div>
 
+      <!-- Postpone & Start Date Selector -->
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-2">
+          ⏳ Pianificazione & Posticipo Partenza
+        </label>
+        <div class="grid grid-cols-4 gap-1 text-[11px]" id="postponeContainer">
+          <button type="button" data-postpone="0" class="postpone-btn py-2 font-bold rounded-xl transition-all bg-brand-500 text-white shadow-md shadow-brand-500/30">Pross. Lun</button>
+          <button type="button" data-postpone="1" class="postpone-btn py-2 font-bold rounded-xl transition-all bg-dark-800 text-slate-400">+1 Sett</button>
+          <button type="button" data-postpone="2" class="postpone-btn py-2 font-bold rounded-xl transition-all bg-dark-800 text-slate-400">+2 Sett</button>
+          <button type="button" data-postpone="custom" class="postpone-btn py-2 font-bold rounded-xl transition-all bg-dark-800 text-slate-400">Data...</button>
+        </div>
+        <div id="customDateRow" class="hidden mt-2">
+          <input type="date" id="customStartDate"
+            class="w-full bg-dark-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+          <span class="text-[9px] text-slate-400 mt-1 block">Il programma allineerà la settimana a partire dal lunedì di questa data.</span>
+        </div>
+      </div>
+
+      <!-- Freeze Mesocycle Checkbox / Switch -->
+      <div class="bg-dark-850/80 border border-slate-800 rounded-xl p-3 flex items-start gap-3">
+        <input type="checkbox" id="freezeCheck" class="mt-0.5 w-4 h-4 rounded text-brand-500 bg-dark-900 border-slate-700 focus:ring-0 cursor-pointer">
+        <div>
+          <label for="freezeCheck" class="text-xs font-bold text-white block cursor-pointer">
+            ⏸️ Congela Mesociclo (Pausa / Vacanza / Malattia)
+          </label>
+          <p class="text-[10px] text-slate-400 mt-0.5">
+            Mantiene la settimana e i livelli WorldTour invariati, senza calcolare fallimenti o penalità di compliance.
+          </p>
+        </div>
+      </div>
+
       <!-- THE 1-TAP BIG ACTION BUTTON -->
       <div class="pt-2">
         <button type="button" id="btnOneTapDispatch" 
@@ -509,6 +540,35 @@
       showToast('Impostazioni salvate sul telefono!');
     });
 
+    let selectedPostponeWeeks = 0;
+    let selectedStartDate = '';
+
+    // Postpone button handlers
+    document.querySelectorAll('.postpone-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.getAttribute('data-postpone');
+        document.querySelectorAll('.postpone-btn').forEach(b => {
+          b.className = 'postpone-btn py-2 font-bold rounded-xl transition-all bg-dark-800 text-slate-400';
+        });
+        btn.className = 'postpone-btn py-2 font-bold rounded-xl transition-all bg-brand-500 text-white shadow-md shadow-brand-500/30';
+
+        const customRow = document.getElementById('customDateRow');
+        if (val === 'custom') {
+          customRow.classList.remove('hidden');
+          selectedPostponeWeeks = 0;
+        } else {
+          customRow.classList.add('hidden');
+          selectedPostponeWeeks = parseInt(val);
+          document.getElementById('customStartDate').value = '';
+          selectedStartDate = '';
+        }
+      });
+    });
+
+    document.getElementById('customStartDate').addEventListener('change', (e) => {
+      selectedStartDate = e.target.value;
+    });
+
     // 1-TAP DISPATCH DIRECT VIA GITHUB REST API
     document.getElementById('btnOneTapDispatch').addEventListener('click', async () => {
       const repo = localStorage.getItem('pt_gh_repo');
@@ -527,6 +587,8 @@
       btn.disabled = true;
 
       const overrideFtp = document.getElementById('overrideFtpInput').value.trim();
+      const isFrozen = document.getElementById('freezeCheck').checked;
+      const customDateVal = document.getElementById('customStartDate').value.trim();
 
       try {
         const res = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/coach_automation.yml/dispatches`, {
@@ -541,7 +603,10 @@
             inputs: {
               training_days: selectedDays.join(','),
               max_duration_min: String(selectedDuration),
-              override_ftp: overrideFtp
+              override_ftp: overrideFtp,
+              postpone_weeks: String(selectedPostponeWeeks),
+              start_date: customDateVal,
+              freeze_progression: String(isFrozen)
             }
           })
         });

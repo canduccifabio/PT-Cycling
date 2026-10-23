@@ -256,3 +256,33 @@ class TestIntervalsClient:
         workout = client.create_workout_event("2026-10-26T07:00:00", "Test Ride", "- 10m 50%")
         assert workout is not None
         assert workout["name"].startswith("Test Ride")
+
+
+class TestPostponementAndFreeze:
+    """Tests for postponing schedule and freezing mesocycle progression."""
+
+    def test_postponement_weeks(self):
+        from main import get_target_week_dates
+        base_now = datetime(2026, 10, 24, 10, 0, 0)  # Saturday
+
+        # Normal incoming Monday (2026-10-26)
+        mon_0, sun_0 = get_target_week_dates(start_from=base_now, postpone_weeks=0)
+        assert mon_0.strftime("%Y-%m-%d") == "2026-10-26"
+        assert sun_0.strftime("%Y-%m-%d") == "2026-11-01"
+
+        # Postpone 1 week -> 2026-11-02
+        mon_1, sun_1 = get_target_week_dates(start_from=base_now, postpone_weeks=1)
+        assert mon_1.strftime("%Y-%m-%d") == "2026-11-02"
+        assert sun_1.strftime("%Y-%m-%d") == "2026-11-08"
+
+        # Postpone 2 weeks -> 2026-11-09
+        mon_2, sun_2 = get_target_week_dates(start_from=base_now, postpone_weeks=2)
+        assert mon_2.strftime("%Y-%m-%d") == "2026-11-09"
+
+    def test_specific_custom_start_date(self):
+        from main import get_target_week_dates
+        # Midweek date (Wednesday 2026-11-18) -> aligns to Monday 2026-11-16
+        mon, sun = get_target_week_dates(specific_start_date="2026-11-18")
+        assert mon.strftime("%Y-%m-%d") == "2026-11-16"
+        assert sun.strftime("%Y-%m-%d") == "2026-11-22"
+

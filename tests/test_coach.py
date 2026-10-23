@@ -286,3 +286,48 @@ class TestPostponementAndFreeze:
         assert mon.strftime("%Y-%m-%d") == "2026-11-16"
         assert sun.strftime("%Y-%m-%d") == "2026-11-22"
 
+    def test_pause_and_resume_orchestration(self, tmp_path):
+        import json
+        import subprocess
+        import sys
+
+        state_file = tmp_path / "athlete_state.json"
+        initial_state = {
+            "current_ftp": 205,
+            "mesocycle_week": 1,
+            "is_paused": False,
+            "pause_reason": ""
+        }
+        state_file.write_text(json.dumps(initial_state))
+
+        # 1. Trigger pause
+        ret = subprocess.run(
+            [sys.executable, "src/main.py", "--state-file", str(state_file), "--pause", "--pause-reason", "Infortunio atleta", "--dry-run"],
+            capture_output=True,
+            text=True
+        )
+        assert ret.returncode == 0
+        state = json.loads(state_file.read_text())
+        assert state["is_paused"] is True
+        assert state["pause_reason"] == "Infortunio atleta"
+
+        # 2. Trigger run while paused (should skip generation)
+        ret2 = subprocess.run(
+            [sys.executable, "src/main.py", "--state-file", str(state_file), "--dry-run"],
+            capture_output=True,
+            text=True
+        )
+        assert ret2.returncode == 0
+        assert "PAUSED" in ret2.stderr or "PAUSED" in ret2.stdout
+
+        # 3. Trigger resume
+        ret3 = subprocess.run(
+            [sys.executable, "src/main.py", "--state-file", str(state_file), "--resume", "--dry-run"],
+            capture_output=True,
+            text=True
+        )
+        assert ret3.returncode == 0
+        state3 = json.loads(state_file.read_text())
+        assert state3["is_paused"] is False
+
+

@@ -1,17 +1,15 @@
 {
   "current_ftp": 205,
-  "mesocycle_week": 2,
+  "mesocycle_week": 1,
   "mesocycle_block": 1,
+  "is_paused": true,
+  "pause_reason": "Infortunio atleta",
   "progression_levels": {
     "vo2max": 1.0,
     "sweet_spot": 1.0,
     "threshold": 1.0
   },
-  "used_archetypes": [
-    "VO2_RONNESTAD_30_15",
-    "SST_CADENCE_CONTRAST_DYNAMIC",
-    "THR_PYRAMID_OVER_UNDER"
-  ],
+  "used_archetypes": [],
   "preferred_days": [
     "MON",
     "WED",
@@ -20,24 +18,24 @@
   "min_duration": 42,
   "max_duration": 60,
   "weekday_duration": 50,
-  "friday_duration": 50,
-  "last_evaluation_date": "2026-10-23T22:11:21Z",
-  "last_scheduled_week_start": "2026-10-26",
+  "friday_duration": 60,
+  "last_evaluation_date": "2026-10-24T00:30:00Z",
+  "last_scheduled_week_start": null,
   "total_blocks_completed": 0,
   "history": [
     {
-      "evaluated_at": "2026-10-23T22:11:21Z",
+      "evaluated_at": "2026-10-24T00:30:00Z",
       "evaluated_week": 1,
-      "scheduled_next_week": 2,
+      "scheduled_next_week": 1,
       "previous_ftp": 205,
       "current_ftp": 205,
       "ftp_increased": false,
-      "decision": "NO_DATA_DEFAULT_ADVANCE",
-      "compliance": 1.0,
+      "decision": "PAUSED_DUE_TO_INJURY",
+      "compliance": 0.0,
       "efficiency_factor": 0.0,
       "decoupling_pct": 0.0,
       "evaluated_sessions": 0,
-      "scheduled_sessions_count": 3,
+      "scheduled_sessions_count": 0,
       "training_days": [
         "MON",
         "WED",
@@ -48,7 +46,7 @@
         "sweet_spot": 1.0,
         "threshold": 1.0
       },
-      "summary": "Nessuna attività registrata; passaggio pianificato da Settimana 1 a 2."
+      "summary": "Programma messo in pausa per infortunio. Stato congelato su Settimana 1 Base (205W)."
     }
   ]
 }

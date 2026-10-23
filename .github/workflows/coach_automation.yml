@@ -54,6 +54,18 @@ on:
         default: false
         type: boolean
 
+      pause_program:
+        description: "⏸️ Metti in Pausa il Programma (Infortunio/Riposo: rimuove workout)"
+        required: false
+        default: false
+        type: boolean
+
+      resume_program:
+        description: "▶️ Riprendi il Programma (Ricomincia ad allenarti)"
+        required: false
+        default: false
+        type: boolean
+
       dry_run:
         description: "🧪 Test / Simulazione (non invia modifiche a Intervals.icu)"
         required: false
@@ -127,6 +139,16 @@ jobs:
           # Gestione congelamento mesociclo
           if [ "${{ github.event.inputs.freeze_progression }}" = "true" ]; then
             ARGS="$ARGS --freeze-progression"
+          fi
+
+          # Gestione messa in pausa
+          if [ "${{ github.event.inputs.pause_program }}" = "true" ]; then
+            ARGS="$ARGS --pause"
+          fi
+
+          # Gestione ripresa programma da pausa
+          if [ "${{ github.event.inputs.resume_program }}" = "true" ]; then
+            ARGS="$ARGS --resume"
           fi
 
           # Gestione Dry-Run

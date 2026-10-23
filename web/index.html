@@ -6,6 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="PT Cycling">
+  <meta name="theme-color" content="#090d16">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -38,6 +39,9 @@
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
+    body {
+      overscroll-behavior-y: contain;
+    }
     .glass-card {
       background: rgba(30, 41, 59, 0.7);
       backdrop-filter: blur(12px);
@@ -61,7 +65,7 @@
 
   <!-- Pull to refresh indicator -->
   <div id="pullToRefreshIndicator" class="fixed top-0 left-0 right-0 z-50 flex items-center justify-center py-2.5 bg-brand-600/95 text-white text-xs font-bold transition-transform duration-200 -translate-y-full shadow-lg">
-    <i class="fa-solid fa-arrows-rotate mr-2 animate-spin"></i> Rilascia per aggiornare l'app...
+    <i class="fa-solid fa-arrows-rotate mr-2 animate-spin"></i> Rilascia per aggiornare i dati...
   </div>
 
   <!-- Mobile Top Bar -->
@@ -75,13 +79,20 @@
           <h1 class="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
             PT CYCLING <span class="text-[10px] bg-brand-500/20 text-brand-500 border border-brand-500/30 px-1.5 py-0.5 rounded font-mono">WORLDTOUR</span>
           </h1>
-          <p class="text-[10px] text-slate-400">Elite Suito ERG • 1-Tap Cloud Sync</p>
+          <p class="text-[10px] text-slate-400">Elite Suito ERG • 1-Tap Cloud</p>
         </div>
       </div>
+      
       <div class="flex items-center space-x-1.5">
-        <button id="btnRefreshApp" title="Aggiorna App e Dati" class="w-8 h-8 rounded-lg bg-dark-850 border border-slate-700 flex items-center justify-center text-slate-300 hover:text-white active:scale-90 transition-all">
+        <!-- Auth Connection Badge -->
+        <button id="btnConnectionStatus" class="text-[10px] px-2 py-1 rounded-lg border font-semibold flex items-center gap-1.5 transition-all bg-dark-850 border-slate-700 text-slate-400">
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> Check
+        </button>
+        <!-- Refresh Button -->
+        <button id="btnRefreshApp" title="Aggiorna Dati" class="w-8 h-8 rounded-lg bg-dark-850 border border-slate-700 flex items-center justify-center text-slate-300 hover:text-white active:scale-90 transition-all">
           <i class="fa-solid fa-arrows-rotate text-xs"></i>
         </button>
+        <!-- Settings Gear -->
         <button id="btnOpenSettings" title="Impostazioni" class="w-8 h-8 rounded-lg bg-dark-850 border border-slate-700 flex items-center justify-center text-slate-300 hover:text-white">
           <i class="fa-solid fa-gear text-xs"></i>
         </button>
@@ -90,6 +101,24 @@
   </header>
 
   <main class="max-w-md mx-auto px-4 py-4 space-y-4">
+
+    <!-- DYNAMIC PAUSE BANNER (Shown when program is paused for injury) -->
+    <div id="pauseBanner" class="hidden bg-gradient-to-r from-amber-950/70 to-orange-950/70 border-2 border-amber-500/60 rounded-2xl p-4 space-y-3 shadow-xl shadow-amber-950/40">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2 text-amber-400 font-black text-xs uppercase tracking-wide">
+          <i class="fa-solid fa-circle-pause text-base animate-pulse"></i>
+          PROGRAMMA IN PAUSA
+        </div>
+        <span class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold" id="pauseReasonBadge">Infortunio</span>
+      </div>
+      <p class="text-[11px] text-slate-300 leading-relaxed">
+        Tutti i workout futuri sono stati rimossi dal calendario. Il programma è congelato a <strong class="text-white">Settimana 1: Base (205 Watt)</strong>. Nessun allenamento verrà caricato su MyWhoosh o Garmin Edge fino alla tua ripresa.
+      </p>
+      <button type="button" id="btnResumeProgram" class="w-full py-3 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-600/30 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+        <i class="fa-solid fa-play text-white"></i>
+        <span id="btnResumeText">🟢 RIPRENDI GLI ALLENAMENTI (SETTIMANA 1 BASE)</span>
+      </button>
+    </div>
 
     <!-- KPI Cards Row -->
     <div class="grid grid-cols-2 gap-3">
@@ -122,9 +151,9 @@
         </div>
         <div class="flex items-baseline space-x-1">
           <span id="currentWeekDisplay" class="text-3xl font-extrabold tracking-tight text-white">W1</span>
-          <span class="text-xs text-slate-400 font-semibold">/ 4 (Base)</span>
+          <span id="currentWeekSub" class="text-xs text-slate-400 font-semibold">/ 4 (Base)</span>
         </div>
-        <div class="mt-1 text-[11px] text-slate-400">
+        <div class="mt-1 text-[11px] text-slate-400" id="currentWeekDesc">
           Progressione Sovraccarico 3:1
         </div>
       </div>
@@ -276,10 +305,10 @@
         <input type="checkbox" id="freezeCheck" class="mt-0.5 w-4 h-4 rounded text-brand-500 bg-dark-900 border-slate-700 focus:ring-0 cursor-pointer">
         <div>
           <label for="freezeCheck" class="text-xs font-bold text-white block cursor-pointer">
-            ⏸️ Congela Mesociclo (Pausa / Vacanza / Malattia)
+            ⏸️ Congela Mesociclo (Pausa / Vacanza: zero penalità)
           </label>
           <p class="text-[10px] text-slate-400 mt-0.5">
-            Mantiene la settimana e i livelli WorldTour invariati, senza calcolare fallimenti o penalità di compliance.
+            Mantiene la settimana e i livelli WorldTour invariati senza penalità di compliance.
           </p>
         </div>
       </div>
@@ -294,6 +323,13 @@
         <p class="text-center text-[10px] text-slate-400 mt-2">
           Avvia l'analisi cloud e sincronizza subito MyWhoosh e Garmin Edge senza aprire GitHub.
         </p>
+      </div>
+
+      <!-- Quick Pause Button (If user wants to pause program anytime) -->
+      <div class="pt-1 text-center" id="quickPauseRow">
+        <button type="button" id="btnQuickPause" class="text-[11px] text-slate-400 hover:text-amber-400 underline underline-offset-4 decoration-slate-600 transition-colors">
+          ⏸️ Metti in pausa per infortunio / vacanza (cancella i workout)
+        </button>
       </div>
 
     </div>
@@ -352,14 +388,14 @@
       </div>
     </div>
 
-    <!-- Apple Shortcut & Telegram Info Card -->
+    <!-- Apple Shortcut & Info Card -->
     <div class="glass-card rounded-2xl p-4 space-y-2">
       <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-        <i class="fa-solid fa-mobile-screen-button text-brand-500"></i> Metodi Alternativi Zero-Click
+        <i class="fa-solid fa-mobile-screen-button text-brand-500"></i> Consigli Utilizzo da iPhone
       </h3>
-      <div class="text-[11px] text-slate-400 space-y-1.5">
-        <p>📱 <strong>Salva su Schermata Home:</strong> Tocca <em>Condividi ➔ Aggiungi a schermata Home</em> su Safari (iOS) o Chrome (Android) per aprirla come una vera app a pieno schermo.</p>
-        <p>💬 <strong>Notifiche Telegram:</strong> Inserisci nei secret di GitHub il tuo `TELEGRAM_BOT_TOKEN` e riceverai il report completo ogni domenica sera direttamente in chat.</p>
+      <div class="text-[11px] text-slate-400 space-y-1.5 leading-relaxed">
+        <p>📱 <strong>Salva su Schermata Home:</strong> Su Safari tocca <em>Condividi ➔ Aggiungi a schermata Home</em> per usarla a schermo intero come una vera App iOS nativa.</p>
+        <p>🔄 <strong>Aggiornamento dati:</strong> Tocca l'icona con le due frecce in alto a destra per ricaricare istantaneamente lo stato più fresco dal cloud.</p>
       </div>
     </div>
 
@@ -367,67 +403,121 @@
 
   <!-- Settings Modal (GitHub Token configuration for 1-Tap) -->
   <div id="settingsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="glass-card max-w-sm w-full rounded-2xl p-5 space-y-4 border border-slate-700">
+    <div class="glass-card max-w-sm w-full rounded-2xl p-5 space-y-4 border border-slate-700 shadow-2xl">
       <div class="flex justify-between items-center">
         <h3 class="text-sm font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-key text-brand-500"></i> Configurazione 1-Tap
+          <i class="fa-solid fa-key text-brand-500"></i> Configurazione 1-Tap iPhone
         </h3>
         <button id="btnCloseSettings" class="text-slate-400 hover:text-white">
           <i class="fa-solid fa-xmark text-base"></i>
         </button>
       </div>
-      <p class="text-[11px] text-slate-300">
-        Per attivare il pulsante 1-Tap senza aprire l'app GitHub, inserisci qui una volta sola il tuo repository e un Personal Access Token. 
-        <strong class="text-amber-400">Viene salvato unicamente nel tuo telefono (localStorage)</strong>.
+      <p class="text-[11px] text-slate-300 leading-relaxed">
+        Su iOS, l'icona della Home ha una memoria dedicata. Inserisci il token una sola volta: viene salvato in sicurezza <strong class="text-amber-400">solo sul tuo iPhone</strong>.
       </p>
 
       <div class="space-y-3">
         <div>
-          <label class="block text-[10px] font-bold text-slate-300 uppercase mb-1">Repository GitHub (username/repo)</label>
-          <input type="text" id="ghRepoInput" placeholder="es. fabiocanducci/PT-Cycling"
-            class="w-full bg-dark-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+          <label class="block text-[10px] font-bold text-slate-300 uppercase mb-1">Repository GitHub</label>
+          <input type="text" id="ghRepoInput" value="canduccifabio/PT-Cycling"
+            class="w-full bg-dark-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono">
         </div>
 
         <div>
-          <label class="block text-[10px] font-bold text-slate-300 uppercase mb-1">GitHub Token (Fine-grained o Classic)</label>
-          <input type="password" id="ghTokenInput" placeholder="ghp_xxxxxxxxxxxx"
-            class="w-full bg-dark-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
-          <span class="text-[9px] text-slate-400 mt-1 block">Permesso necessario: solo <code>Actions (Read & Write)</code>.</span>
+          <label class="block text-[10px] font-bold text-slate-300 uppercase mb-1">GitHub Token (PAT)</label>
+          <input type="password" id="ghTokenInput" placeholder="github_pat_... oppure ghp_..."
+            class="w-full bg-dark-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono">
+          <span class="text-[9px] text-slate-400 mt-1 block">Permesso: <code>Actions (Read & Write)</code>.</span>
         </div>
       </div>
 
-      <button id="btnSaveSettings" class="w-full py-2.5 bg-brand-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-brand-500/30">
-        Salva nel Telefono
-      </button>
+      <div class="flex gap-2 pt-1">
+        <button id="btnSaveSettings" class="flex-1 py-2.5 bg-brand-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-brand-500/30 active:scale-95 transition-all">
+          Salva nel Telefono
+        </button>
+        <button id="btnTestConnection" class="px-3 py-2.5 bg-dark-800 border border-slate-700 text-slate-300 hover:text-white font-bold text-xs rounded-xl transition-all">
+          Testa
+        </button>
+      </div>
     </div>
   </div>
 
   <!-- Toast Notification -->
-  <div id="toast" class="fixed bottom-6 left-4 right-4 max-w-md mx-auto hidden bg-emerald-600 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center justify-between transition-all">
+  <div id="toast" class="fixed bottom-6 left-4 right-4 max-w-md mx-auto hidden bg-emerald-600 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center justify-between transition-all z-50">
     <span id="toastMsg">Operazione completata!</span>
     <i class="fa-solid fa-circle-check text-sm ml-2"></i>
   </div>
 
   <script>
+    const DEFAULT_REPO = 'canduccifabio/PT-Cycling';
+
     // State
     let currentFtp = 205;
     let mesocycleWeek = 1;
+    let isProgramPaused = false;
+    let pauseReasonText = 'Infortunio atleta';
     let selectedDays = ['MON', 'WED', 'FRI'];
     let selectedDuration = 50;
+    let selectedPostponeWeeks = 0;
+    let selectedStartDate = '';
 
-    // Load state
+    // Auto-configure from URL hash or query param if provided
+    (function checkUrlParams() {
+      try {
+        const hash = window.location.hash.replace(/^#/, '');
+        const hashParams = new URLSearchParams(hash);
+        const searchParams = new URLSearchParams(window.location.search);
+
+        const token = hashParams.get('token') || searchParams.get('token');
+        const repo = hashParams.get('repo') || searchParams.get('repo');
+
+        if (token && token.trim()) {
+          localStorage.setItem('pt_gh_token', token.trim());
+        }
+        if (repo && repo.trim()) {
+          localStorage.setItem('pt_gh_repo', repo.trim());
+        } else if (!localStorage.getItem('pt_gh_repo')) {
+          localStorage.setItem('pt_gh_repo', DEFAULT_REPO);
+        }
+
+        // Clean sensitive token from URL bar immediately without reloading
+        if (token || repo) {
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
+        }
+      } catch (e) {
+        console.warn('URL auto-config warning:', e);
+      }
+    })();
+
+    function updateAuthBadge() {
+      const token = localStorage.getItem('pt_gh_token');
+      const repo = localStorage.getItem('pt_gh_repo') || DEFAULT_REPO;
+      const badge = document.getElementById('btnConnectionStatus');
+
+      if (token) {
+        badge.className = 'text-[10px] px-2 py-1 rounded-lg border font-semibold flex items-center gap-1.5 transition-all bg-emerald-500/20 text-emerald-400 border-emerald-500/40';
+        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> 1-Tap OK';
+      } else {
+        badge.className = 'text-[10px] px-2 py-1 rounded-lg border font-semibold flex items-center gap-1.5 transition-all bg-amber-500/20 text-amber-400 border-amber-500/40 animate-pulse';
+        badge.innerHTML = '<i class="fa-solid fa-key text-[9px]"></i> Collega';
+      }
+    }
+
+    // Load State from GitHub Raw or Local JSON
     async function loadAthleteState() {
       let data = null;
-      const repo = localStorage.getItem('pt_gh_repo');
-      const candidates = [];
-      if (repo) {
-        candidates.push(`https://raw.githubusercontent.com/${repo}/main/state/athlete_state.json?t=${Date.now()}`);
-      }
-      candidates.push('state/athlete_state.json', './state/athlete_state.json', '../state/athlete_state.json');
+      const repo = localStorage.getItem('pt_gh_repo') || DEFAULT_REPO;
+      const cacheBust = Date.now();
+      const candidates = [
+        `https://raw.githubusercontent.com/${repo}/main/state/athlete_state.json?nocache=${cacheBust}`,
+        `state/athlete_state.json?nocache=${cacheBust}`,
+        `./state/athlete_state.json?nocache=${cacheBust}`
+      ];
 
       for (const url of candidates) {
         try {
-          const res = await fetch(url);
+          const res = await fetch(url, { cache: 'no-store' });
           if (res.ok) {
             data = await res.json();
             break;
@@ -438,6 +528,8 @@
       if (data) {
         if (data.current_ftp) currentFtp = data.current_ftp;
         if (data.mesocycle_week) mesocycleWeek = data.mesocycle_week;
+        isProgramPaused = Boolean(data.is_paused);
+        if (data.pause_reason) pauseReasonText = data.pause_reason;
         if (data.preferred_days && data.preferred_days.length) selectedDays = data.preferred_days;
         if (data.weekday_duration) selectedDuration = data.weekday_duration;
         if (data.progression_levels) {
@@ -447,12 +539,37 @@
         }
       }
       renderUI();
+      updateAuthBadge();
     }
 
     function renderUI() {
       document.getElementById('currentFtpDisplay').innerText = currentFtp;
-      document.getElementById('currentWeekDisplay').innerText = `W${mesocycleWeek}`;
       
+      const pauseBanner = document.getElementById('pauseBanner');
+      const pauseReasonBadge = document.getElementById('pauseReasonBadge');
+      const quickPauseRow = document.getElementById('quickPauseRow');
+      const currentWeekDisplay = document.getElementById('currentWeekDisplay');
+      const currentWeekSub = document.getElementById('currentWeekSub');
+      const currentWeekDesc = document.getElementById('currentWeekDesc');
+      const btnOneTapText = document.getElementById('btnOneTapText');
+
+      if (isProgramPaused) {
+        pauseBanner.classList.remove('hidden');
+        pauseReasonBadge.innerText = pauseReasonText;
+        if (quickPauseRow) quickPauseRow.classList.add('hidden');
+        currentWeekDisplay.innerText = 'W1';
+        currentWeekSub.innerText = '(Pausa Infortunio)';
+        currentWeekDesc.innerHTML = '<span class="text-amber-400 font-semibold">⏸️ Stato congelato</span>';
+        btnOneTapText.innerText = '⏸️ PROGRAMMA IN PAUSA (USA RIPRENDI IN ALTO)';
+      } else {
+        pauseBanner.classList.add('hidden');
+        if (quickPauseRow) quickPauseRow.classList.remove('hidden');
+        currentWeekDisplay.innerText = `W${mesocycleWeek}`;
+        currentWeekSub.innerText = '/ 4 (Base)';
+        currentWeekDesc.innerText = 'Progressione Sovraccarico 3:1';
+        btnOneTapText.innerText = '🚀 1-TAP: PROGRAMMA E SINCRONIZZA ORA';
+      }
+
       const weekLabels = {
         1: 'Settimana 1: Base',
         2: 'Settimana 2: Densità (+15% TiZ)',
@@ -529,30 +646,56 @@
     function showToast(msg, isError = false) {
       const toast = document.getElementById('toast');
       document.getElementById('toastMsg').innerText = msg;
-      toast.className = `fixed bottom-6 left-4 right-4 max-w-md mx-auto ${isError ? 'bg-red-600' : 'bg-emerald-600'} text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center justify-between transition-all`;
+      toast.className = `fixed bottom-6 left-4 right-4 max-w-md mx-auto ${isError ? 'bg-red-600' : 'bg-emerald-600'} text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center justify-between transition-all z-50`;
       toast.classList.remove('hidden');
-      setTimeout(() => toast.classList.add('hidden'), 4000);
+      setTimeout(() => toast.classList.add('hidden'), 4500);
     }
 
-    // Settings Modal
+    // Settings Modal Handlers
     const modal = document.getElementById('settingsModal');
-    document.getElementById('btnOpenSettings').addEventListener('click', () => {
-      document.getElementById('ghRepoInput').value = localStorage.getItem('pt_gh_repo') || '';
+    function openSettings() {
+      document.getElementById('ghRepoInput').value = localStorage.getItem('pt_gh_repo') || DEFAULT_REPO;
       document.getElementById('ghTokenInput').value = localStorage.getItem('pt_gh_token') || '';
       modal.classList.remove('hidden');
-    });
+    }
+    document.getElementById('btnOpenSettings').addEventListener('click', openSettings);
+    document.getElementById('btnConnectionStatus').addEventListener('click', openSettings);
     document.getElementById('btnCloseSettings').addEventListener('click', () => modal.classList.add('hidden'));
+
     document.getElementById('btnSaveSettings').addEventListener('click', () => {
-      const repo = document.getElementById('ghRepoInput').value.trim();
+      const repo = document.getElementById('ghRepoInput').value.trim() || DEFAULT_REPO;
       const token = document.getElementById('ghTokenInput').value.trim();
-      if (repo) localStorage.setItem('pt_gh_repo', repo);
+      localStorage.setItem('pt_gh_repo', repo);
       if (token) localStorage.setItem('pt_gh_token', token);
       modal.classList.add('hidden');
-      showToast('Impostazioni salvate sul telefono!');
+      updateAuthBadge();
+      showToast('Configurazione salvata sul telefono!');
+      loadAthleteState();
     });
 
-    let selectedPostponeWeeks = 0;
-    let selectedStartDate = '';
+    document.getElementById('btnTestConnection').addEventListener('click', async () => {
+      const repo = document.getElementById('ghRepoInput').value.trim() || DEFAULT_REPO;
+      const token = document.getElementById('ghTokenInput').value.trim();
+      if (!token) {
+        showToast('Inserisci prima il token!', true);
+        return;
+      }
+      try {
+        const res = await fetch(`https://api.github.com/repos/${repo}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json'
+          }
+        });
+        if (res.ok) {
+          showToast('✅ Connessione a GitHub verificata con successo!');
+        } else {
+          showToast(`❌ Errore GitHub: ${res.status} (Verifica token)`, true);
+        }
+      } catch (err) {
+        showToast('Errore di rete durante il test', true);
+      }
+    });
 
     // Postpone button handlers
     document.querySelectorAll('.postpone-btn').forEach(btn => {
@@ -580,26 +723,16 @@
       selectedStartDate = e.target.value;
     });
 
-    // 1-TAP DISPATCH DIRECT VIA GITHUB REST API
-    document.getElementById('btnOneTapDispatch').addEventListener('click', async () => {
-      const repo = localStorage.getItem('pt_gh_repo');
+    // GENERIC WORKFLOW DISPATCH FUNCTION
+    async function dispatchGitHubWorkflow(inputsPayload, successMsg) {
+      const repo = localStorage.getItem('pt_gh_repo') || DEFAULT_REPO;
       const token = localStorage.getItem('pt_gh_token');
 
-      if (!repo || !token) {
-        modal.classList.remove('hidden');
+      if (!token) {
+        openSettings();
         showToast('Configura il tuo GitHub Token una volta sola per il 1-Tap!', true);
-        return;
+        return false;
       }
-
-      const btn = document.getElementById('btnOneTapDispatch');
-      const btnText = document.getElementById('btnOneTapText');
-      const originalText = btnText.innerText;
-      btnText.innerText = '⏳ GENERAZIONE IN CORSO SUL CLOUD...';
-      btn.disabled = true;
-
-      const overrideFtp = document.getElementById('overrideFtpInput').value.trim();
-      const isFrozen = document.getElementById('freezeCheck').checked;
-      const customDateVal = document.getElementById('customStartDate').value.trim();
 
       try {
         const res = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/coach_automation.yml/dispatches`, {
@@ -611,48 +744,109 @@
           },
           body: JSON.stringify({
             ref: 'main',
-            inputs: {
-              training_days: selectedDays.join(','),
-              max_duration_min: String(selectedDuration),
-              override_ftp: overrideFtp,
-              postpone_weeks: String(selectedPostponeWeeks),
-              start_date: customDateVal,
-              freeze_progression: String(isFrozen)
-            }
+            inputs: inputsPayload
           })
         });
 
         if (res.status === 204) {
-          showToast('🎉 Allenatore attivato! I workout saranno su MyWhoosh e Garmin a breve.');
+          showToast(successMsg);
+          // Wait 3 seconds and reload live state
+          setTimeout(loadAthleteState, 3500);
+          return true;
         } else {
           const errData = await res.json().catch(() => ({}));
           showToast(`Errore GitHub (${res.status}): ${errData.message || 'Verifica il Token'}`, true);
+          return false;
         }
       } catch (e) {
         showToast('Errore di connessione a GitHub: ' + e.message, true);
-      } finally {
-        btnText.innerText = originalText;
-        btn.disabled = false;
+        return false;
+      }
+    }
+
+    // 1-TAP DISPATCH (STANDARD SCHEDULE)
+    document.getElementById('btnOneTapDispatch').addEventListener('click', async () => {
+      const btn = document.getElementById('btnOneTapDispatch');
+      const btnText = document.getElementById('btnOneTapText');
+      const originalText = btnText.innerText;
+      btnText.innerText = '⏳ GENERAZIONE IN CORSO SUL CLOUD...';
+      btn.disabled = true;
+
+      const overrideFtp = document.getElementById('overrideFtpInput').value.trim();
+      const isFrozen = document.getElementById('freezeCheck').checked;
+      const customDateVal = document.getElementById('customStartDate').value.trim();
+
+      const payload = {
+        training_days: selectedDays.join(','),
+        max_duration_min: String(selectedDuration),
+        override_ftp: overrideFtp,
+        postpone_weeks: String(selectedPostponeWeeks),
+        start_date: customDateVal,
+        freeze_progression: String(isFrozen)
+      };
+
+      await dispatchGitHubWorkflow(payload, '🎉 Allenatore attivato! I workout saranno su MyWhoosh e Garmin a breve.');
+      btnText.innerText = originalText;
+      btn.disabled = false;
+    });
+
+    // RESUME PROGRAM BUTTON (FROM PAUSE)
+    document.getElementById('btnResumeProgram').addEventListener('click', async () => {
+      const btn = document.getElementById('btnResumeProgram');
+      const btnText = document.getElementById('btnResumeText');
+      const originalText = btnText.innerText;
+      btnText.innerText = '⏳ RIATTIVAZIONE IN CORSO...';
+      btn.disabled = true;
+
+      const payload = {
+        training_days: selectedDays.join(','),
+        max_duration_min: String(selectedDuration),
+        resume_program: 'true'
+      };
+
+      const ok = await dispatchGitHubWorkflow(payload, '🎉 Bentornato! Programma riattivato su Settimana 1 Base.');
+      if (ok) {
+        isProgramPaused = false;
+        renderUI();
+      }
+      btnText.innerText = originalText;
+      btn.disabled = false;
+    });
+
+    // QUICK PAUSE BUTTON (PUT ON HOLD)
+    document.getElementById('btnQuickPause').addEventListener('click', async () => {
+      if (!confirm('Vuoi mettere in pausa il programma? I workout futuri verranno cancellati dal calendario finché non decidi di ripartire.')) {
+        return;
+      }
+
+      const payload = {
+        pause_program: 'true'
+      };
+
+      const ok = await dispatchGitHubWorkflow(payload, '⏸️ Programma messo in pausa. Workout rimossi dal calendario!');
+      if (ok) {
+        isProgramPaused = true;
+        renderUI();
       }
     });
 
-    // Refresh Button Handler (Force hard reload with cache bust)
+    // REFRESH BUTTON (HARD CACHE BUST)
     document.getElementById('btnRefreshApp').addEventListener('click', () => {
       const icon = document.querySelector('#btnRefreshApp i');
       icon.classList.add('fa-spin');
-      showToast('🔄 Aggiornamento interfaccia e dati in corso...');
-      setTimeout(() => {
-        window.location.href = window.location.origin + window.location.pathname + '?reload=' + Date.now();
-      }, 300);
+      showToast('🔄 Aggiornamento interfaccia e dati...');
+      loadAthleteState().finally(() => {
+        setTimeout(() => icon.classList.remove('fa-spin'), 600);
+      });
     });
 
-    // iOS Touch Pull-to-Refresh simulation
+    // PULL-TO-REFRESH FOR IPHONE SAFARI / PWA
     let touchStartY = 0;
     let isPulling = false;
     const ptrIndicator = document.getElementById('pullToRefreshIndicator');
 
     window.addEventListener('touchstart', (e) => {
-      if (window.scrollY === 0) {
+      if ((window.pageYOffset || document.documentElement.scrollTop || 0) <= 0) {
         touchStartY = e.touches[0].clientY;
         isPulling = true;
       }
@@ -662,7 +856,7 @@
       if (!isPulling) return;
       const currentY = e.touches[0].clientY;
       const diffY = currentY - touchStartY;
-      if (diffY > 60 && window.scrollY === 0) {
+      if (diffY > 50 && (window.pageYOffset || document.documentElement.scrollTop || 0) <= 0) {
         ptrIndicator.classList.remove('-translate-y-full');
       }
     }, { passive: true });
@@ -671,8 +865,13 @@
       if (!isPulling) return;
       isPulling = false;
       const diffY = (e.changedTouches[0]?.clientY || 0) - touchStartY;
-      if (diffY > 60 && window.scrollY === 0) {
-        window.location.href = window.location.origin + window.location.pathname + '?reload=' + Date.now();
+      if (diffY > 50 && (window.pageYOffset || document.documentElement.scrollTop || 0) <= 0) {
+        ptrIndicator.classList.add('-translate-y-full');
+        document.querySelector('#btnRefreshApp i')?.classList.add('fa-spin');
+        showToast('🔄 Dati aggiornati dal cloud!');
+        loadAthleteState().finally(() => {
+          document.querySelector('#btnRefreshApp i')?.classList.remove('fa-spin');
+        });
       } else {
         ptrIndicator.classList.add('-translate-y-full');
       }
@@ -685,7 +884,7 @@
       }
     });
 
-    // Init
+    // Initial Load
     loadAthleteState();
   </script>
 </body>

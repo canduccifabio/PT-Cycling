@@ -17,6 +17,8 @@ import os
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
+import requests
+
 from intervals_client import IntervalsClient
 from performance_analyzer import PerformanceAnalyzer
 from workout_builder import WorkoutBuilder
@@ -157,6 +159,22 @@ def parse_arguments() -> argparse.Namespace:
         help="Freeze mesocycle progression without penalty (pause/illness/vacation)"
     )
     parser.add_argument(
+        "--pause",
+        action="store_true",
+        help="Put training program on hold (injury/recovery/rest)"
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume training program from pause"
+    )
+    parser.add_argument(
+        "--pause-reason",
+        type=str,
+        default="Infortunio atleta",
+        help="Reason for pause (default: 'Infortunio atleta')"
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Run without calling external Intervals.icu mutations"
@@ -184,6 +202,28 @@ def write_github_step_summary(markdown_text: str) -> None:
                 f.write(markdown_text + "\n")
         except Exception as e:
             logger.warning(f"Could not write to GITHUB_STEP_SUMMARY: {e}")
+
+
+def send_telegram_notification(msg: str) -> None:
+    tg_token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+    tg_chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+    # Ensure it's a real Telegram bot token (has a colon and not an athlete ID)
+    if tg_token and tg_chat_id and ":" in tg_token and not tg_token.startswith("i"):
+        try:
+            tg_url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
+            payload = {
+                "chat_id": tg_chat_id,
+                "text": msg,
+                "parse_mode": "Markdown",
+                "disable_web_page_preview": True
+            }
+            resp = requests.post(tg_url, json=payload, timeout=10)
+            if resp.status_code == 200:
+                logger.info("📱 Telegram push notification delivered successfully!")
+            else:
+                logger.warning(f"Telegram notification returned status {resp.status_code}")
+        except Exception as e:
+            logger.warning(f"Could not send Telegram notification: {e}")
 
 
 def main() -> int:
@@ -222,6 +262,58 @@ def main() -> int:
     )
 
     profile = load_json_file(args.config_file, {})
+
+    if args.pause:
+        state["is_paused"] = True
+        state["pause_reason"] = args.pause_reason or "Infortunio atleta"
+        logger.info(f"⏸️ Training program manually set to PAUSED: {state['pause_reason']}")
+
+    if args.resume:
+        state["is_paused"] = False
+        state["pause_reason"] = ""
+        logger.info("▶️ Training program manually RESUMED from pause.")
+
+    # If program is paused, clean up calendars, persist state, and halt execution gracefully
+    if state.get("is_paused", False):
+        pause_reason = state.get("pause_reason", "Infortunio atleta")
+        logger.info(
+            f"⏸️ Training program is PAUSED ({pause_reason}). Cleaning up future workouts and skipping schedule."
+        )
+
+        client = IntervalsClient(athlete_id=athlete_id, api_key=api_key)
+        target_monday, target_sunday = get_target_week_dates(start_from=datetime.now())
+        window_start_str = target_monday.strftime("%Y-%m-%d")
+        window_end_str = target_sunday.strftime("%Y-%m-%d")
+
+        if not args.dry_run and client.is_configured():
+            client.cleanup_managed_events(window_start_str, window_end_str)
+            prev_week_start = state.get("last_scheduled_week_start")
+            if prev_week_start:
+                try:
+                    prev_start_dt = datetime.strptime(prev_week_start, "%Y-%m-%d")
+                    prev_end_dt = prev_start_dt + timedelta(days=6)
+                    client.cleanup_managed_events(prev_week_start, prev_end_dt.strftime("%Y-%m-%d"))
+                except Exception:
+                    pass
+
+        state["last_scheduled_week_start"] = None
+        save_json_file(args.state_file, state)
+
+        pause_md = f"""# ⏸️ PT Cycling - Programma in Pausa
+**Stato Attuale:** In pausa per **{pause_reason}**  
+**Settimana Congelata:** Settimana **{state.get('mesocycle_week', 1)}** di 4 (Base)  
+**FTP Attuale:** **{state.get('current_ftp', 205)} Watt**  
+**Sincronizzazione:** Tutti i workout gestiti sono stati cancellati da Intervals.icu, MyWhoosh e Garmin.  
+
+---
+> 🩺 **Nota Coach WorldTour:**  
+> Il recupero è una parte fondamentale dell'allenamento. Concentrati sulla guarigione completa senza alcuna preoccupazione!  
+> Quando sarai pronto a risalire sui rulli, tocca **'Riprendi gli Allenamenti'** nella Dashboard Web o avvia il workflow con `resume_program: true`.
+"""
+        logger.info("\n" + pause_md)
+        write_github_step_summary(pause_md)
+        send_telegram_notification(pause_md)
+        return 0
 
     # Determine training days
     if args.training_days.strip():
@@ -333,28 +425,6 @@ def main() -> int:
     # Remove any existing managed workouts for the target week
     if not args.dry_run:
         client.cleanup_managed_events(window_start_str, window_end_str)
-
-    # Telegram notification helper
-    def send_telegram_notification(msg: str) -> None:
-        tg_token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-        tg_chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
-        # Ensure it's a real Telegram bot token (has a colon and not an athlete ID)
-        if tg_token and tg_chat_id and ":" in tg_token and not tg_token.startswith("i"):
-            try:
-                tg_url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
-                payload = {
-                    "chat_id": tg_chat_id,
-                    "text": msg,
-                    "parse_mode": "Markdown",
-                    "disable_web_page_preview": True
-                }
-                resp = requests.post(tg_url, json=payload, timeout=10)
-                if resp.status_code == 200:
-                    logger.info("📱 Telegram push notification delivered successfully!")
-                else:
-                    logger.warning(f"Telegram notification returned status {resp.status_code}")
-            except Exception as e:
-                logger.warning(f"Could not send Telegram notification: {e}")
 
     # Build structured workouts with progression levels and archetype rotation
     recent_used = state.get("used_archetypes", [])

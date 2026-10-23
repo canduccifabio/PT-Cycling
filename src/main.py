@@ -146,8 +146,21 @@ def main() -> int:
     args = parse_arguments()
     logger.info("🚴 Starting PT Cycling WorldTour Serverless Indoor Coach...")
 
-    athlete_id = os.getenv("INTERVALS_ATHLETE_ID", "")
-    api_key = os.getenv("INTERVALS_API_KEY", "")
+    athlete_id = os.getenv("INTERVALS_ATHLETE_ID", "").strip()
+    api_key = os.getenv("INTERVALS_API_KEY", "").strip()
+
+    # Smart fallback: in case the user added their Intervals.icu credentials to TELEGRAM_* secrets
+    tg_token_env = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+    tg_chat_env = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+    if not athlete_id:
+        if tg_token_env.startswith("i") or tg_token_env.isdigit():
+            athlete_id = tg_token_env
+            api_key = tg_chat_env
+            logger.info(f"Loaded Intervals.icu credentials from fallback secrets: athlete={athlete_id}")
+        elif tg_chat_env.startswith("i") or tg_chat_env.isdigit():
+            athlete_id = tg_chat_env
+            api_key = tg_token_env
+            logger.info(f"Loaded Intervals.icu credentials from fallback secrets: athlete={athlete_id}")
 
     # Load persistent state and profile
     state = load_json_file(
@@ -249,7 +262,8 @@ def main() -> int:
     def send_telegram_notification(msg: str) -> None:
         tg_token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
         tg_chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
-        if tg_token and tg_chat_id:
+        # Ensure it's a real Telegram bot token (has a colon and not an athlete ID)
+        if tg_token and tg_chat_id and ":" in tg_token and not tg_token.startswith("i"):
             try:
                 tg_url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
                 payload = {

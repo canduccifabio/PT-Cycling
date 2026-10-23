@@ -375,22 +375,34 @@
 
     // Load state
     async function loadAthleteState() {
-      try {
-        const res = await fetch('../state/athlete_state.json');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.current_ftp) currentFtp = data.current_ftp;
-          if (data.mesocycle_week) mesocycleWeek = data.mesocycle_week;
-          if (data.preferred_days && data.preferred_days.length) selectedDays = data.preferred_days;
-          if (data.weekday_duration) selectedDuration = data.weekday_duration;
-          if (data.progression_levels) {
-            document.getElementById('lvlVo2').innerText = `Lvl ${data.progression_levels.vo2max || 1.0}`;
-            document.getElementById('lvlSst').innerText = `Lvl ${data.progression_levels.sweet_spot || 1.0}`;
-            document.getElementById('lvlThr').innerText = `Lvl ${data.progression_levels.threshold || 1.0}`;
+      let data = null;
+      const repo = localStorage.getItem('pt_gh_repo');
+      const candidates = [];
+      if (repo) {
+        candidates.push(`https://raw.githubusercontent.com/${repo}/main/state/athlete_state.json?t=${Date.now()}`);
+      }
+      candidates.push('state/athlete_state.json', './state/athlete_state.json', '../state/athlete_state.json');
+
+      for (const url of candidates) {
+        try {
+          const res = await fetch(url);
+          if (res.ok) {
+            data = await res.json();
+            break;
           }
+        } catch (err) {}
+      }
+
+      if (data) {
+        if (data.current_ftp) currentFtp = data.current_ftp;
+        if (data.mesocycle_week) mesocycleWeek = data.mesocycle_week;
+        if (data.preferred_days && data.preferred_days.length) selectedDays = data.preferred_days;
+        if (data.weekday_duration) selectedDuration = data.weekday_duration;
+        if (data.progression_levels) {
+          document.getElementById('lvlVo2').innerText = `Lvl ${data.progression_levels.vo2max || 1.0}`;
+          document.getElementById('lvlSst').innerText = `Lvl ${data.progression_levels.sweet_spot || 1.0}`;
+          document.getElementById('lvlThr').innerText = `Lvl ${data.progression_levels.threshold || 1.0}`;
         }
-      } catch (err) {
-        console.log('Using default state params:', err);
       }
       renderUI();
     }

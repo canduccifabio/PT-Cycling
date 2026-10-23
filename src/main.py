@@ -241,9 +241,11 @@ def main() -> int:
     effective_ftp = eval_result.next_ftp
     effective_week = eval_result.next_week
 
-    # Sync FTP to Intervals.icu if changed or overridden
-    if eval_result.ftp_increased or (args.override_ftp and args.override_ftp > 0):
-        logger.info(f"Synchronizing new FTP ({effective_ftp}W) to Intervals.icu...")
+    # Sync FTP to Intervals.icu if changed, overridden, or initial run
+    athlete_data = client.get_athlete()
+    current_remote_ftp = athlete_data.get("icu_ftp")
+    if eval_result.ftp_increased or (args.override_ftp and args.override_ftp > 0) or (current_remote_ftp != effective_ftp):
+        logger.info(f"Synchronizing FTP ({effective_ftp}W) to Intervals.icu...")
         if not args.dry_run:
             client.update_ftp(effective_ftp)
 
